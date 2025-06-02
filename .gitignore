@@ -1,0 +1,26 @@
+# Fichiers et dossiers de Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json # Si tu n'utilises pas de package.json, sinon à discuter
+# .pnp.* # Décommente si tu utilises Yarn PnP
+
+# Fichiers de clasp (certains peuvent être sensibles ou spécifiques à l'utilisateur)
+# Le .clasp.json contient le scriptId, il est généralement commité.
+# Si tu stockes des tokens d'accès OAuth locaux (non recommandé pour le partage),
+# tu pourrais vouloir ignorer .clasprc.json, mais pour le scriptId, .clasp.json est ok.
+
+# Fichiers macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Fichiers de l'éditeur VS Code
+.vscode/
+
+# Fichiers temporaires et logs
+*.log
+logs
+*.tmp
+*.swp
