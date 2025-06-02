@@ -1,5 +1,5 @@
-// Version: 1.0.1
-// Last Modified: 2025-06-02 (Ajout fonctions wrapper de test pour l'éditeur, vérification de typeSysteme)
+// Version: 1.0.2
+// Last Modified: 2025-06-02 10:11 par Rolland  (modification maFonctionDeTestPourCreerObjet() )
 /**
  * @fileoverview Main script functions callable from AppSheet.
  */
@@ -9,15 +9,17 @@
  * Fonction wrapper pour tester testAuthentication depuis l'éditeur Apps Script.
  * REMPLACEZ les valeurs de testUsername, testPassword par vos identifiants réels.
  */
-function maFonctionDeTestPourAuth() {
-  // REMPLACE CECI PAR TES VRAIS IDENTIFIANTS ET LE TYPE DE SYSTÈME
-  var testUsername = "360sc_Duhalde"; // METS TON VRAI USERNAME API ICI
-  var testPassword = "360sc_Duhalde"; // METS TON VRAI MOT DE PASSE API ICI
-  var testSystemType = "DEV";          // "DEV" ou "PROD"
+function maFonctionDeTestPourCreerObjet() {
+  // REMPLACE CECI PAR TES VRAIS IDENTIFIANTS ET PARAMÈTRES DE TEST
+  var testUsername = "360sc_Duhalde";      // METS TON VRAI USERNAME API ICI
+  var testPassword = "360sc_Duhalde";      // METS TON VRAI MOT DE PASSE API ICI
+  var testSystemType = "DEV";               // "DEV" ou "PROD"
+  var testNomObjetBase = "TestObjetEditeur"; // Nom de base pour l'objet de test
+  var testAlphaId = "v0:OF_PRINCIPAL";      // AlphaId pour le test
 
-  Logger.log("Appel de testAuthentication avec username: " + testUsername + ", typeSysteme: " + testSystemType);
-  var resultat = testAuthentication(testUsername, testPassword, testSystemType);
-  Logger.log("Résultat de testAuthentication: " + JSON.stringify(resultat));
+  Logger.log(`Appel de testCreateSingleObject avec: user=${testUsername}, type=${testSystemType}, nomBase=${testNomObjetBase}, alphaId=${testAlphaId}`);
+  var resultat = testCreateSingleObject(testUsername, testPassword, testSystemType, testNomObjetBase, testAlphaId);
+  Logger.log("Résultat de testCreateSingleObject: " + JSON.stringify(resultat));
 }
 
 /**
