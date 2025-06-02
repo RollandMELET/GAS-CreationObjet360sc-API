@@ -1,15 +1,16 @@
-<!-- Dernière mise à jour du README : 2025-06-02 à 10:25 par Rolland MELET -->
+<!-- Dernière mise à jour du README : 2025-06-02 (Aligné avec la version 1.2.1 du code) -->
 # GAS-CreationObjet360sc-API
 
-Ce projet Google Apps Script a pour objectif d'interagir avec l'API de la plateforme 360SmartConnect pour créer une série de 5 objets "Avatar" liés, à partir d'un nom d'objet de base. Il retourne les URLs `mcUrl` uniques associées à chacun des objets créés.
+Ce projet Google Apps Script a pour objectif d'interagir avec l'API de la plateforme 360SmartConnect pour créer une série de 5 objets "Avatar" liés, à partir d'un nom d'objet de base. Il retourne les URLs `mcUrl` uniques associées à chacun des objets créés. Les identifiants API sont gérés de manière sécurisée via `PropertiesService`.
 
 ## Fonctionnalités
 
-*   Authentification auprès de l'API 360SmartConnect.
+*   Authentification sécurisée auprès de l'API 360SmartConnect (identifiants stockés dans `PropertiesService`).
 *   Création séquentielle de 5 types d'objets "Avatar" avec des `alphaId` et des noms spécifiques dérivés d'un nom de base.
 *   Récupération de l'`mcUrl` pour chaque avatar créé.
-*   Gestion des environnements DEV et PROD.
-*   Fonctions de test pour valider les étapes individuelles (authentification, création d'un seul objet).
+*   Gestion des environnements DEV et PROD via un fichier de configuration.
+*   Structure de retour JSON plate et standardisée pour faciliter l'intégration avec AppSheet.
+*   Fonctions de test pour valider les étapes individuelles et les scénarios de succès/erreur.
 *   Conçu pour être appelé depuis une application Google AppSheet via `google.script.run`.
 
 ## Technologies Utilisées
@@ -23,145 +24,190 @@ Ce projet Google Apps Script a pour objectif d'interagir avec l'API de la platef
 ## Prérequis
 
 1.  **Compte Google**.
-2.  **Accès et identifiants pour l'API 360SmartConnect** (username, password, URL de base pour DEV/PROD, ID de compagnie pour DEV/PROD).
-3.  **Node.js et npm** installés localement (pour installer et utiliser `clasp`).
-4.  **`clasp`** installé globalement : `sudo npm install -g @google/clasp`.
-5.  **Git** installé localement.
+2.  **Accès et identifiants pour l'API 360SmartConnect** (username, password).
+3.  **Informations de configuration API :** URL de base pour DEV/PROD, ID de compagnie pour DEV/PROD (à configurer dans `config.gs`).
+4.  **Node.js et npm** installés localement (pour installer et utiliser `clasp`).
+5.  **`clasp`** installé globalement : `sudo npm install -g @google/clasp`.
+6.  **Git** installé localement.
 
-## Installation et Configuration
+## Installation et Configuration Initiale
 
-1.  **Cloner le dépôt (si ce n'est pas déjà fait) :**
+1.  **Cloner le dépôt :**
     ```bash
     git clone https://github.com/RollandMELET/GAS-CreationObjet360sc-API.git
     cd GAS-CreationObjet360sc-API
     ```
 
 2.  **Authentification `clasp` :**
-    Si c'est la première fois que vous utilisez `clasp` sur cette machine ou avec ce compte :
     ```bash
     clasp login
     ```
     Suivez les instructions pour vous connecter à votre compte Google.
 
 3.  **Lier au projet Google Apps Script :**
-    Le fichier `.clasp.json` inclus dans ce dépôt contient un `scriptId`.
-    *   **Pour utiliser le projet Apps Script existant lié à ce `scriptId` :** Assurez-vous d'avoir les permissions sur ce projet.
-    *   **Pour lier à un nouveau projet ou un autre projet existant :**
-        *   Créez un nouveau projet standalone sur [script.google.com](https://script.google.com).
-        *   Notez son `Script ID` (dans Fichier > Paramètres du projet).
-        *   Modifiez le `scriptId` dans le fichier `.clasp.json` local avec ce nouvel ID.
-        *   Ou utilisez `clasp create --title "Mon Nouveau Projet 360sc" --rootDir ./` pour créer un nouveau projet et lier. (Attention, cela pourrait écraser le `.clasp.json` existant).
+    Le fichier `.clasp.json` contient le `scriptId` du projet Apps Script. Si vous souhaitez utiliser un autre projet, mettez à jour ce `scriptId`.
 
-4.  **Configuration du Script (`config.gs`) :**
-    Ouvrez le fichier `config.gs` et mettez à jour les placeholders suivants, notamment pour l'environnement PROD :
+4.  **Configuration des Environnements (`config.gs`) :**
+    Ouvrez le fichier `config.gs` et mettez à jour les placeholders pour l'URL de base de l'API et l'ID de compagnie, **surtout pour l'environnement PROD** :
     ```javascript
     const ENV_CONFIG = {
       // ... configuration DEV ...
       PROD: {
-        API_BASE_URL: "https://VOTRE_URL_PROD_API.360sc.yt", // À REMPLACER
-        COMPANY_ID: "/api/companies/VOTRE_ID_COMPANIE_PROD" // À REMPLACER
+        API_BASE_URL: "https://VOTRE_URL_PROD_API_REELLE.360sc.yt", // À REMPLACER
+        COMPANY_ID: "/api/companies/VOTRE_ID_COMPANIE_PROD_REEL" // À REMPLACER
       }
     };
     ```
-    Les identifiants `username` et `password` pour l'API sont passés en paramètres lors de l'appel des fonctions.
 
-5.  **Pousser les fichiers vers Google Apps Script :**
+5.  **Pousser les fichiers initiaux vers Google Apps Script :**
     ```bash
     clasp push -f
     ```
-    L'option `-f` (force) peut être utile pour la première synchronisation ou si des conflits sont détectés.
+
+6.  **Stocker les Identifiants API (Action Manuelle Cruciale UNE FOIS) :**
+    *   Ouvrez le projet dans l'éditeur Google Apps Script (ex: via `clasp open`).
+    *   Dans le fichier `utils.gs`, localisez la fonction `storeApiCredentials()`.
+    *   **Modifiez les placeholders** `VOTRE_VRAI_USERNAME_360SC_API` et `VOTRE_VRAI_MOT_DE_PASSE_360SC_API` par vos identifiants 360sc réels.
+    *   Sauvegardez `utils.gs`.
+    *   Sélectionnez `storeApiCredentials` dans l'éditeur et exécutez-la. Un message de succès devrait apparaître (via `Logger.log`, les `Browser.msgBox` ayant été commentés).
+    *   **Optionnel mais recommandé :** Exécutez `checkStoredApiCredentials` pour vérifier que les identifiants sont bien lus.
+    *   **Sécurité :** Après le stockage réussi, modifiez à nouveau `storeApiCredentials` pour retirer les identifiants en clair du code (remettez des placeholders ou des chaînes vides), sauvegardez, et faites un `clasp push`. Les identifiants sont maintenant stockés de manière sécurisée dans `PropertiesService`.
 
 ## Structure des Fichiers
 
-*   `appsscript.json`: Manifeste du projet Apps Script. Contient les permissions nécessaires (comme `script.external_request`).
-*   `Code.gs`: Contient la fonction principale `creerMultiplesObjets360sc` exposée à AppSheet, ainsi que les fonctions de test et les wrappers pour l'exécution depuis l'éditeur.
-*   `apiHandler.gs`: Contient la logique bas niveau pour les appels à l'API 360sc (authentification, création d'avatar, récupération d'URL).
+*   `appsscript.json`: Manifeste du projet Apps Script (permissions, etc.).
+*   `Code.gs`: Contient la fonction principale `creerMultiplesObjets360sc` exposée à AppSheet, ainsi que les fonctions de test publiques et les wrappers pour l'exécution depuis l'éditeur.
+*   `apiHandler.gs`: Contient la logique bas niveau pour les appels à l'API 360sc (authentification, création d'avatar, récupération d'URL). `getAuthToken_` lit désormais les identifiants depuis `PropertiesService`.
 *   `config.gs`: Contient les configurations spécifiques aux environnements (URL, IDs constants, définitions des objets à créer).
+*   `utils.gs`: Contient des fonctions utilitaires, notamment pour gérer le stockage des identifiants API dans `PropertiesService`.
 *   `.clasp.json`: Configuration de `clasp`, notamment le `scriptId`.
 *   `.gitignore`: Spécifie les fichiers à ignorer par Git.
 *   `README.md`: Ce fichier.
 
 ## Fonctions Principales
 
-### 1. `creerMultiplesObjets360sc(nomDeObjetBase, username, password, typeSysteme)`
-   *   **Rôle :** Fonction principale à appeler (par exemple, depuis AppSheet).
+### 1. `creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme)`
+   *   **Rôle :** Fonction principale à appeler (par exemple, depuis AppSheet). Crée 5 objets liés sur la plateforme 360SmartConnect et retourne leurs URLs `mcUrl`. Les identifiants API sont lus de manière sécurisée depuis `ScriptProperties`.
    *   **Paramètres :**
-        *   `nomDeObjetBase` (String) : Le nom de base pour les objets (ex: "MonProjetSuper").
-        *   `username` (String) : Nom d'utilisateur pour l'API 360sc.
-        *   `password` (String) : Mot de passe pour l'API 360sc.
-        *   `typeSysteme` (String) : `"DEV"` ou `"PROD"`.
-   *   **Retourne :** Un objet JSON.
-        *   En cas de succès : `{ "PAC_360scID": "url1", "PAC_360scID_ENV": "url2", ... }`
-        *   En cas d'erreur : `{ error: "Message d'erreur détaillé" }`
+        *   `nomDeObjetBase` (String) : Le nom de base pour les objets (ex: "MonProjetSuper"). Ne peut être vide.
+        *   `typeSysteme` (String) : `"DEV"` ou `"PROD"`. Ne peut être vide.
+   *   **Retourne :** Une **chaîne JSON** qui, une fois parsée, donne un objet avec la structure suivante :
 
-### 2. Fonctions de Test (dans `Code.gs`)
-   Ces fonctions peuvent être appelées depuis AppSheet ou via les wrappers dans l'éditeur.
-   *   `testAuthentication(username, password, typeSysteme)`
-   *   `testCreateSingleObject(username, password, typeSysteme, nomObjetTestBase, alphaIdTest)`
-   *   `testGetMcUrlForAvatar(username, password, typeSysteme, avatarApiIdPath)`
+    *   **En cas de succès complet :**
+        ```json
+        {
+          "success": true,
+          "message": "Tous les objets ont été créés avec succès.",
+          "PAC_360scID": "https://mc.360sc.xyz/xxxx1",
+          "PAC_360scID_ENV": "https://mc.360sc.xyz/xxxx2",
+          "PAC_360scID_DALLE": "https://mc.360sc.xyz/xxxx3",
+          "PAC_360scID_TOIT": "https://mc.360sc.xyz/xxxx4",
+          "PAC_360scID_ELEC": "https://mc.360sc.xyz/xxxx5"
+        }
+        ```
+        *(Exemple basé sur les tests de `maFonctionDeTestPourCreerMultiples_SUCCES`)*
+
+    *   **En cas d'erreur (erreur de configuration, d'authentification, ou échec de création d'un des objets) :**
+        ```json
+        {
+          "success": false,
+          "message": "Message convivial expliquant le contexte de l'échec.",
+          "error": "Message technique détaillé de l'erreur.",
+          "details_originalError": "Message de l'exception originale capturée.",
+          "details_stack": "Trace de la pile (peut être tronquée ou 'N/A').",
+          "details_step": "Étape spécifique où l'erreur est survenue (ex: 'creation_PAC_360scID_DALLE')" // Si l'erreur survient pendant la création d'un objet spécifique.
+        }
+        ```
+        **Exemple d'erreur de configuration (`typeSysteme` invalide) :**
+        ```json
+        {
+          "success": false,
+          "message": "Une erreur de configuration ou d'authentification est survenue.",
+          "error": "Configuration non valide pour le type de système : DEV_INVALIDE. Doit être \"DEV\" ou \"PROD\".",
+          "details_originalError": "Configuration non valide pour le type de système : DEV_INVALIDE. Doit être \"DEV\" ou \"PROD\".",
+          "details_stack": "Error: Configuration non valide pour le type de système : DEV_INVALIDE. Doit être \"DEV\" ou \"PROD\".\n    at getConfiguration_ (config:XX:XX)\n    ..."
+        }
+        ```
+        **Exemple d'erreur de paramètre manquant (`nomDeObjetBase` non fourni) :**
+        ```json
+        {
+          "success": false,
+          "message": "Une erreur de configuration ou d'authentification est survenue.",
+          "error": "Le paramètre 'nomDeObjetBase' est requis et ne peut être vide.",
+          "details_originalError": "Le paramètre 'nomDeObjetBase' est requis et ne peut être vide.",
+          "details_stack": "Error: Le paramètre 'nomDeObjetBase' est requis et ne peut être vide.\n    at creerMultiplesObjets360sc (Code:XX:XX)\n    ..."
+        }
+        ```
+
+### 2. Fonctions de Test Publiques (dans `Code.gs`)
+   Ces fonctions peuvent aussi être appelées depuis AppSheet si besoin, et retournent la même structure JSON que `creerMultiplesObjets360sc`.
+   *   `testAuthentication(typeSysteme)`
+   *   `testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest)`
+   *   `testGetMcUrlForAvatar(typeSysteme, avatarApiIdPath)`
 
 ### 3. Fonctions Wrapper de Test (dans `Code.gs`)
-   Ces fonctions sont préconfigurées pour être exécutées facilement depuis l'éditeur Apps Script.
+   Ces fonctions sont préconfigurées pour être exécutées facilement depuis l'éditeur Apps Script afin de tester différents scénarios.
    *   `maFonctionDeTestPourAuth()`
    *   `maFonctionDeTestPourCreerObjet()`
-   *   `maFonctionDeTestPourCreerMultiples()`
-   **Note :** Modifiez les identifiants de test directement dans ces fonctions avant de les exécuter.
+   *   `maFonctionDeTestPourCreerMultiples_SUCCES()` : Simule un succès complet de la création multiple.
+   *   `maFonctionDeTestPourCreerMultiples_ERREUR()` : Simule des scénarios d'erreur pour la création multiple.
 
 ## Utilisation
 
 ### Depuis l'Éditeur Google Apps Script
 1.  Ouvrez le projet sur [script.google.com](https://script.google.com) ou via `clasp open`.
-2.  Sélectionnez une des fonctions wrapper de test (ex: `maFonctionDeTestPourAuth`).
-3.  Assurez-vous que les identifiants de test dans la fonction wrapper sont corrects.
+2.  **Stockez les identifiants API** en exécutant `storeApiCredentials()` depuis `utils.gs` (voir étape 6 de l'Installation).
+3.  Sélectionnez une des fonctions wrapper de test (ex: `maFonctionDeTestPourCreerMultiples_SUCCES`).
 4.  Cliquez sur "Exécuter".
-5.  Consultez les `Logger.log` dans le "Journal d'exécution".
-6.  Autorisez les permissions si demandé lors de la première exécution.
+5.  Consultez les `Logger.log` dans le "Journal d'exécution" pour voir la chaîne JSON retournée et l'objet parsé.
+6.  Autorisez les permissions si demandé lors de la première exécution (pour `UrlFetchApp`, `PropertiesService`, etc.).
 
 ### Depuis AppSheet
-1.  Dans votre application AppSheet, configurez une action ou un automatisme pour appeler un script.
+1.  Dans votre application AppSheet, configurez une action ou un automatisme (recommandé pour gérer le retour) pour appeler un script.
 2.  Utilisez `google.script.run` avec les gestionnaires de succès et d'échec.
     ```javascript
-    // Exemple (côté client AppSheet, syntaxe à adapter)
-    google.script.run
-      .withSuccessHandler(function(response) {
-        if (response.error) {
-          console.error("Erreur du script:", response.error);
-          // Afficher l'erreur à l'utilisateur
-        } else {
-          console.log("URLs reçues:", response);
-          // Utiliser les URLs: response.PAC_360scID, response.PAC_360scID_ENV, etc.
-        }
-      })
-      .withFailureHandler(function(error) {
-        console.error("Erreur d'appel du script:", error.message);
-        // Afficher une erreur générique
-      })
-      .creerMultiplesObjets360sc("NomDeMonObjet", "user_api", "pass_api", "DEV");
+    // Exemple conceptuel (la syntaxe exacte dépend de votre configuration AppSheet)
+    // Supposons que 'resultatDuScript' est l'objet JSON parsé retourné par le script.
+
+    // Dans un Automation, après avoir appelé le script et stocké le résultat dans 'ScriptResult':
+    // Condition pour l'étape de succès:
+    // [ScriptResult][success] = TRUE
+    // Actions de succès:
+    //   [Url_Principal] = [ScriptResult][PAC_360scID]
+    //   ... (pour les autres URLs)
+    //   Notification: [ScriptResult][message]
+
+    // Condition pour l'étape d'erreur:
+    // [ScriptResult][success] = FALSE
+    // Actions d'erreur:
+    //   [Log_Erreur] = CONCATENATE("Erreur Script: ", [ScriptResult][error], " Détails: ", [ScriptResult][details_originalError])
+    //   Notification: CONCATENATE("Problème création objets: ", [ScriptResult][message])
     ```
+    La fonction à appeler depuis AppSheet est `creerMultiplesObjets360sc` avec les paramètres `nomDeObjetBase` et `typeSysteme`.
 
 ## Workflow de Développement
 
-1.  Modifiez les fichiers `.gs` localement dans VS Code (ou votre IDE préféré).
-2.  Utilisez `clasp push` pour synchroniser les modifications avec le projet Google Apps Script en ligne.
-3.  Testez depuis l'éditeur Apps Script ou directement via AppSheet.
+1.  Modifiez les fichiers `.gs` localement dans VS Code.
+2.  Utilisez `clasp push` pour synchroniser les modifications avec Google Apps Script.
+3.  Testez depuis l'éditeur Apps Script en utilisant les fonctions wrapper.
 4.  Utilisez Git pour le versioning :
     ```bash
     git add .
-    git commit -m "Description de vos modifications"
+    git commit -m "Description de vos modifications (ex: v1.2.1 - Amélioration X)"
     git push origin main
     ```
 
 ## Informations Importantes
 
-*   **`x-deduplication-id` :** Un ID unique est généré automatiquement (`Utilities.getUuid()`) pour chaque requête de création d'avatar afin d'assurer l'idempotence.
-*   **Gestion des erreurs :** Le script tente de capturer les erreurs API et retourne des messages descriptifs. Si une étape de la création multiple échoue, le processus s'arrête pour les objets suivants.
-*   **Environnement PROD :** Assurez-vous que `API_BASE_URL` et `COMPANY_ID` sont correctement configurés dans `config.gs` avant de passer `typeSysteme="PROD"`.
+*   **Sécurité des Identifiants :** Les identifiants de l'API 360sc sont stockés dans `PropertiesService` au niveau du script et ne sont pas exposés côté client.
+*   **`x-deduplication-id` :** Un ID unique est généré automatiquement (`Utilities.getUuid()`) pour chaque requête de création d'avatar.
+*   **Gestion des erreurs :** Le script retourne une structure JSON avec `success: false` et des détails en cas d'erreur. Si une étape de la création multiple échoue, le processus s'arrête pour les objets suivants pour cet appel.
+*   **Environnement PROD :** Vérifiez la configuration dans `config.gs` avant d'utiliser `typeSysteme="PROD"`.
 
 ## Référence API 360SmartConnect
 
-La documentation de référence pour l'API 360SmartConnect (utilisée comme base pour ce script) est disponible ici (adaptez le lien pour l'environnement de production si nécessaire) :
-[https://apiv2preprod.360sc.yt/api/docs#](https://apiv2preprod.360sc.yt/api/docs#)
+Documentation officielle : [https://apiv2preprod.360sc.yt/api/docs#](https://apiv2preprod.360sc.yt/api/docs#) (adaptez pour PROD si nécessaire).
 
 ## Versioning des Fichiers Source
 
-Les fichiers source `.gs` incluent un commentaire de version en haut du fichier (ex: `// Version: 1.0.2`). Mettez à jour ce numéro lors de modifications significatives du code. L'historique complet des modifications est géré par Git.
+Les fichiers source `.gs` incluent un commentaire de version (ex: `// Version: 1.2.1`). L'historique complet des modifications est géré par Git.
