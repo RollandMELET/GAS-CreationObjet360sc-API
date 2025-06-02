@@ -14,8 +14,8 @@ function storeApiCredentials() {
     const scriptProperties = PropertiesService.getScriptProperties();
 
     // IMPORTANT: Replace with your actual 360sc API credentials
-    const apiUsername = "PLACEHOLDER_USERNAME_APRES_STOCKAGE"; // REMPLACE CECI LORS DE L'EXECUTION INITIALE
-    const apiPassword = "PLACEHOLDER_PASSWORD_APRES_STOCKAGE"; // REMPLACE CECI LORS DE L'EXECUTION INITIALE
+    const apiUsername = "360sc_Duhalde"; // REMPLACE CECI LORS DE L'EXECUTION INITIALE
+    const apiPassword = "360sc_Duhalde"; // REMPLACE CECI LORS DE L'EXECUTION INITIALE
 
     if (apiUsername === "PLACEHOLDER_USERNAME_APRES_STOCKAGE" || apiPassword === "PLACEHOLDER_PASSWORD_APRES_STOCKAGE" || apiUsername.trim() === "" || apiPassword.trim() === "") {
       Logger.log("ERREUR: Veuillez remplacer les placeholders par vos identifiants API réels et valides dans la fonction storeApiCredentials avant de l'exécuter.");
