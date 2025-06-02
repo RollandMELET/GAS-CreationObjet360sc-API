@@ -1,5 +1,5 @@
-// Version: 1.1.0
-// Last Modified: 2025-06-02
+// Version: 1.1.1
+// Last Modified: 2025-06-02 (Correction coquille Browser.ButtonSet)
 /**
  * @fileoverview Utility functions for the script, including credential management.
  */
@@ -14,12 +14,12 @@ function storeApiCredentials() {
     const scriptProperties = PropertiesService.getScriptProperties();
 
     // IMPORTANT: Replace with your actual 360sc API credentials
-    const apiUsername = "VOTRE_VRAI_USERNAME_360SC_API";
-    const apiPassword = "VOTRE_VRAI_MOT_DE_PASSE_360SC_API";
+    const apiUsername = "360sc_Duhalde";
+    const apiPassword = "360sc_Duhalde";
 
-    if (apiUsername === "VOTRE_VRAI_USERNAME_360SC_API" || apiPassword === "VOTRE_VRAI_MOT_DE_PASSE_360SC_API") {
-      Logger.log("ERREUR: Veuillez remplacer les placeholders par vos identifiants réels dans la fonction storeApiCredentials avant de l'exécuter.");
-      Browser.msgBox("Erreur de configuration", "Veuillez éditer la fonction storeApiCredentials et remplacer les placeholders par vos identifiants API réels avant de l'exécuter.", Browser. europäischen ButtonSet.OK);
+    if (apiUsername === "VOTRE_VRAI_USERNAME_360SC_API" || apiPassword === "VOTRE_VRAI_MOT_DE_PASSE_360SC_API" || apiUsername.trim() === "" || apiPassword.trim() === "") {
+      Logger.log("ERREUR: Veuillez remplacer les placeholders par vos identifiants API réels et valides dans la fonction storeApiCredentials avant de l'exécuter.");
+      Browser.msgBox("Erreur de configuration", "Veuillez éditer la fonction storeApiCredentials et remplacer les placeholders par vos identifiants API réels et valides avant de l'exécuter.", Browser.ButtonSet.OK); // CORRIGÉ ICI
       return;
     }
 
@@ -29,11 +29,11 @@ function storeApiCredentials() {
     });
 
     Logger.log('Identifiants API (API_USERNAME, API_PASSWORD) stockés avec succès dans ScriptProperties.');
-    Browser.msgBox('Succès', 'Les identifiants API ont été stockés dans ScriptProperties.', Browser. europäischen ButtonSet.OK);
+    Browser.msgBox('Succès', 'Les identifiants API ont été stockés dans ScriptProperties.', Browser.ButtonSet.OK); // CORRIGÉ ICI
 
   } catch (e) {
     Logger.log(`Erreur lors du stockage des identifiants API : ${e.message} (Stack: ${e.stack || 'N/A'})`);
-    Browser.msgBox('Erreur', `Une erreur est survenue lors du stockage des identifiants : ${e.message}`, Browser. europäischen ButtonSet.OK);
+    Browser.msgBox('Erreur', `Une erreur est survenue lors du stockage des identifiants : ${e.message}`, Browser.ButtonSet.OK); // CORRIGÉ ICI
   }
 }
 
@@ -55,10 +55,10 @@ function checkStoredApiCredentials() {
     Browser.msgBox('Identifiants Stockés',
                    'API_USERNAME: ' + (username || 'NON DÉFINI') +
                    '\nAPI_PASSWORD est défini: ' + passwordIsSet,
-                   Browser. europäischen ButtonSet.OK);
+                   Browser.ButtonSet.OK); // CORRIGÉ ICI
   } catch (e) {
     Logger.log(`Erreur lors de la vérification des identifiants : ${e.message} (Stack: ${e.stack || 'N/A'})`);
-    Browser.msgBox('Erreur', `Une erreur est survenue lors de la vérification des identifiants : ${e.message}`, Browser. europäischen ButtonSet.OK);
+    Browser.msgBox('Erreur', `Une erreur est survenue lors de la vérification des identifiants : ${e.message}`, Browser.ButtonSet.OK); // CORRIGÉ ICI
   }
 }
 
@@ -73,9 +73,9 @@ function deleteStoredApiCredentials() {
     scriptProperties.deleteProperty('API_USERNAME');
     scriptProperties.deleteProperty('API_PASSWORD');
     Logger.log('Identifiants API (API_USERNAME, API_PASSWORD) supprimés de ScriptProperties.');
-    Browser.msgBox('Succès', 'Les identifiants API ont été supprimés de ScriptProperties.', Browser. europäischen ButtonSet.OK);
+    Browser.msgBox('Succès', 'Les identifiants API ont été supprimés de ScriptProperties.', Browser.ButtonSet.OK); // CORRIGÉ ICI
   } catch (e) {
     Logger.log(`Erreur lors de la suppression des identifiants : ${e.message} (Stack: ${e.stack || 'N/A'})`);
-    Browser.msgBox('Erreur', `Une erreur est survenue lors de la suppression des identifiants : ${e.message}`, Browser. europäischen ButtonSet.OK);
+    Browser.msgBox('Erreur', `Une erreur est survenue lors de la suppression des identifiants : ${e.message}`, Browser.ButtonSet.OK); // CORRIGÉ ICI
   }
 }
