@@ -1,35 +1,47 @@
-// Version: 1.0.0
-// Last Modified: 2025-06-02
+// Version: 1.1.0
+// Last Modified: 2025-06-02 (Utilisation de ScriptProperties pour les identifiants API)
 /**
  * @fileoverview Handles interactions with the 360sc API.
  */
 
 /**
  * Authenticates with the 360sc API and returns an access token.
- * @param {string} username The username for authentication.
- * @param {string} password The password for authentication.
+ * Retrieves API credentials from ScriptProperties.
  * @param {string} typeSysteme "DEV" or "PROD" to determine API endpoint.
  * @return {string} The access token.
- * @throws {Error} If authentication fails or API returns an error.
+ * @throws {Error} If authentication fails, API returns an error, or credentials are not configured.
  * @private
  */
-function getAuthToken_(username, password, typeSysteme) {
-  const config = getConfiguration_(typeSysteme);
+function getAuthToken_(typeSysteme) {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const apiUsername = scriptProperties.getProperty('API_USERNAME');
+  const apiPassword = scriptProperties.getProperty('API_PASSWORD');
+
+  if (!apiUsername || !apiPassword) {
+    const errorMessage = "ERREUR CRITIQUE: Identifiants API_USERNAME ou API_PASSWORD non trouvés dans ScriptProperties. Veuillez exécuter la fonction 'storeApiCredentials' avec les bons identifiants.";
+    Logger.log(errorMessage);
+    // Consider not throwing a generic error here if called by AppSheet,
+    // as it might expose internal details. Instead, the calling function should handle this.
+    // However, for internal calls, throwing is fine.
+    throw new Error(errorMessage);
+  }
+
+  const config = getConfiguration_(typeSysteme); // typeSysteme is still necessary
   const authUrl = config.API_BASE_URL + config.AUTH_ENDPOINT;
 
   const payload = {
-    username: username,
-    password: password
+    username: apiUsername,
+    password: apiPassword
   };
 
   const options = {
     method: 'post',
     contentType: 'application/json',
     payload: JSON.stringify(payload),
-    muteHttpExceptions: true // Important pour gérer les erreurs HTTP nous-mêmes
+    muteHttpExceptions: true
   };
 
-  Logger.log(`Authentification en cours sur : ${authUrl}`);
+  Logger.log(`Authentification en cours sur : ${authUrl} (utilisateur depuis ScriptProperties)`);
   const response = UrlFetchApp.fetch(authUrl, options);
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
@@ -41,13 +53,17 @@ function getAuthToken_(username, password, typeSysteme) {
       return jsonResponse.token;
     } else {
       Logger.log(`Erreur d'authentification : token non trouvé dans la réponse. Réponse: ${responseBody}`);
-      throw new Error("Erreur d'authentification : token non trouvé dans la réponse.");
+      throw new Error("Erreur d'authentification : token non trouvé dans la réponse JSON.");
     }
   } else {
     Logger.log(`Erreur d'authentification. Code: ${responseCode}. Réponse: ${responseBody}`);
     throw new Error(`Échec de l'authentification. Code: ${responseCode}. Message: ${responseBody}`);
   }
 }
+
+// --- Les fonctions createAvatar_ et getMcUrlForAvatar_ restent INCHANGÉES ---
+// Version: 1.0.0 (de leur dernière modification pertinente, ou 1.1.0 si on aligne tout)
+// Last Modified: 2025-06-02
 
 /**
  * Creates an "Avatar" object in the 360sc platform.
@@ -64,7 +80,7 @@ function createAvatar_(accessToken, typeSysteme, objectNameForApi, alphaId) {
   const avatarsUrl = config.API_BASE_URL + config.AVATARS_ENDPOINT;
 
   const payload = {
-    name: objectNameForApi, 
+    name: objectNameForApi,
     alphaId: alphaId,
     generateMCFinger: config.GENERATE_MC_FINGER,
     generateMCQuantity: config.GENERATE_MC_QUANTITY,
