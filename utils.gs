@@ -52,8 +52,8 @@ function _storeApiCredentials(typeSysteme, username, password) {
  * Stores DEV API credentials. User must edit placeholders.
  */
 function storeDevApiCredentials() {
-  var username_dev = "360sc_Duhalde"; // REMPLACEZ CECI
-  var password_dev = "360sc_Duhalde"; // REMPLACEZ CECI
+  var username_dev = "IDENTIFIANT_STOCKE"; // REMPLACEZ CECI
+  var password_dev = ""; // REMPLACEZ CECI
   Logger.log("Tentative de stockage des identifiants DEV. VEUILLEZ MODIFIER LES PLACEHOLDERS DANS LE CODE AVANT D'EXECUTER SI CE N'EST PAS FAIT.");
   _storeApiCredentials("DEV", username_dev, password_dev);
 }
@@ -62,8 +62,8 @@ function storeDevApiCredentials() {
  * Stores TEST API credentials. (Pré-rempli avec les infos fournies)
  */
 function storeTestApiCredentials() {
-  var username_test = "360sc_DuhaldeTest"; // Pré-rempli
-  var password_test = "360sc_DuhaldeTest@360sc_DuhaldeTest"; // Pré-rempli
+  var username_test = "IDENTIFIANT_TEST_STOCKE"; // Pré-rempli
+  var password_test = "MOTDEPASSE_TEST_STOCKEldeTest"; // Pré-rempli
   Logger.log("Tentative de stockage des identifiants TEST.");
   _storeApiCredentials("TEST", username_test, password_test);
 }
