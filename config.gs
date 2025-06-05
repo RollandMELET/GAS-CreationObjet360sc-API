@@ -1,8 +1,8 @@
 // FILENAME: config.gs
-// Version: 1.1.3
-// Date: 2025-06-01 19:30
+// Version: 1.1.4
+// Date: 2025-06-01 19:45
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout de l'ID Finger spécifique pour l'environnement TEST.
+// Description: Mise à jour de GENERATE_MC_FINGER pour TEST avec le format IRI complet.
 /**
  * @fileoverview Configuration settings for the 360sc API interaction script.
  */
@@ -32,13 +32,12 @@ const ENV_CONFIG = {
   TEST: {
     API_BASE_URL: "https://apiv2.360sc.yt",
     COMPANY_ID: "/api/companies/683fff330baf4",
-    GENERATE_MC_FINGER: "6364149b51f85" // ID Finger pour TEST (Option 1: ID simple)
-                                        // Si cela ne fonctionne pas, essayer "/api/fingers/6364149b51f85"
+    GENERATE_MC_FINGER: "/api/fingers/6364149b51f85" // ID Finger pour TEST au format IRI complet
   },
   PROD: {
     API_BASE_URL: "https://apiv2.360sc.yt",
     COMPANY_ID: "VOTRE_ID_COMPANIE_PROD", // À REMPLACER
-    GENERATE_MC_FINGER: "VOTRE_MC_FINGER_ID_POUR_PROD" // À REMPLACER
+    GENERATE_MC_FINGER: "VOTRE_MC_FINGER_ID_POUR_PROD" // À REMPLACER (probablement au format /api/fingers/ID_PROD)
   }
 };
 
