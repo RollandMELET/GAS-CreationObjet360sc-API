@@ -1,135 +1,137 @@
-// Version: 1.1.5
-// Last Modified: 2025-06-02 (Commenté tous les appels Browser.msgBox pour éviter les erreurs)
+// FILENAME: utils.gs
+// Version: 1.2.0
+// Date: 2025-06-01 17:00
+// Author: Rolland MELET (Collaboratively with AI Senior Coder)
+// Description: Gestion des identifiants API par environnement (DEV, TEST, PROD).
 /**
  * @fileoverview Utility functions for the script, including credential management.
  */
 
-/**
- * Teste les appels les plus simples à Browser.msgBox pour isoler les problèmes.
- * NOTE: CETTE FONCTION EST LAISSÉE POUR INVESTIGATION FUTURE SI BESOIN.
- */
+// testSimpleBrowserMsgBox reste commenté comme dans la version originale.
 function testSimpleBrowserMsgBox() {
-  try {
-    Logger.log("Début testSimpleBrowserMsgBox");
-
-    // Test 1: Signature msgBox(prompt)
-    var prompt1 = "Ceci est un message de test simple.";
-    Logger.log("Appel Browser.msgBox(prompt1)");
-    // Browser.msgBox(prompt1); // Commenté
-    Logger.log("Browser.msgBox(prompt1) aurait été appelé.");
-
-    // Test 2: Signature msgBox(title, prompt)
-    var title2 = "Titre de Test";
-    var prompt2 = "Ceci est un message de test avec un titre.";
-    Logger.log("Appel Browser.msgBox(title2, prompt2)");
-    // Browser.msgBox(title2, prompt2); // Commenté
-    Logger.log("Browser.msgBox(title2, prompt2) aurait été appelé.");
-
-    // Test 3: Signature msgBox(title, prompt, buttons)
-    var title3 = "Titre de Test 3";
-    var prompt3 = "Ceci est un test avec un bouton OK/CANCEL.";
-    Logger.log("Appel Browser.msgBox(title3, prompt3, Browser.ButtonSet.OK_CANCEL)");
-    // var response3 = Browser.msgBox(title3, prompt3, Browser.ButtonSet.OK_CANCEL); // Commenté
-    // Logger.log("Browser.msgBox(title3, prompt3, ...) aurait été appelé. Réponse: " + response3);
-
-    Logger.log("testSimpleBrowserMsgBox terminé (appels msgBox commentés).");
-    // if (typeof Browser !== 'undefined' && Browser.msgBox) {
-    //     Browser.msgBox("Test msgBox", "Tous les tests Browser.msgBox simples ont été tentés (commentés). Vérifiez les logs.", Browser.ButtonSet.OK);
-    // }
-
-  } catch (e) {
-    Logger.log(`Erreur dans testSimpleBrowserMsgBox : ${e.message} (Stack: ${e.stack || 'N/A'})`);
-    // if (typeof Browser !== 'undefined' && Browser.msgBox) {
-    //     Browser.msgBox("Erreur Test msgBox", `Erreur: ${e.message}. Vérifiez les logs.`, Browser.ButtonSet.OK);
-    // }
-  }
+  // ... (contenu original commenté)
+  Logger.log("testSimpleBrowserMsgBox a été appelé (contenu original commenté).");
 }
 
-
 /**
- * Stores API credentials in ScriptProperties.
+ * Stores API credentials for a specific environment in ScriptProperties.
+ * @param {string} typeSysteme "DEV", "TEST", or "PROD".
+ * @param {string} username The API username.
+ * @param {string} password The API password.
+ * @private
  */
-function storeApiCredentials() {
+function _storeApiCredentials(typeSysteme, username, password) {
+  const systemTypeUpper = typeSysteme.toUpperCase();
+  if (!["DEV", "TEST", "PROD"].includes(systemTypeUpper)) {
+    Logger.log(`ERREUR: Type de système '${typeSysteme}' invalide pour le stockage des identifiants.`);
+    return;
+  }
+
   try {
     const scriptProperties = PropertiesService.getScriptProperties();
-    const apiUsername = "360sc_Duhalde"; // REMPLACE CECI LORS DE L'EXECUTION INITIALE
-    const apiPassword = "360sc_Duhalde"; // REMPLACE CECI LORS DE L'EXECUTION INITIALE
-
-    if (apiUsername === "PLACEHOLDER_USERNAME_APRES_STOCKAGE" || apiPassword === "PLACEHOLDER_PASSWORD_APRES_STOCKAGE" || apiUsername.trim() === "" || apiPassword.trim() === "") {
-      var errorPrompt = "Veuillez éditer la fonction storeApiCredentials et remplacer les placeholders par vos identifiants API réels et valides avant de l'exécuter.";
-      Logger.log("ERREUR: " + errorPrompt);
-      // if (typeof Browser !== 'undefined' && Browser.msgBox) {
-      //   Browser.msgBox("Erreur de configuration", errorPrompt, Browser.ButtonSet.OK);
-      // }
+    if (!username || !password || username.trim() === "" || password.trim() === "" || username.startsWith("VOTRE_") || password.startsWith("VOTRE_")) {
+      var errorPrompt = `Veuillez fournir un username et password valides pour l'environnement ${systemTypeUpper}. Les valeurs actuelles sont : User='${username}', Pass fourni='${password ? 'Oui' : 'Non'}'.`;
+      Logger.log("ERREUR stockage: " + errorPrompt);
       return;
     }
 
     scriptProperties.setProperties({
-      'API_USERNAME': apiUsername,
-      'API_PASSWORD': apiPassword
+      [`API_USERNAME_${systemTypeUpper}`]: username,
+      [`API_PASSWORD_${systemTypeUpper}`]: password
     });
 
-    var successPrompt = 'Les identifiants API ont été stockés dans ScriptProperties.';
+    var successPrompt = `Les identifiants API pour ${systemTypeUpper} ont été stockés dans ScriptProperties.`;
     Logger.log(successPrompt);
-    // if (typeof Browser !== 'undefined' && Browser.msgBox) {
-    //   Browser.msgBox('Succès', successPrompt, Browser.ButtonSet.OK);
-    // }
-
   } catch (e) {
-    var catchPrompt = `Une erreur est survenue lors du stockage des identifiants : ${e.message}`;
+    var catchPrompt = `Une erreur est survenue lors du stockage des identifiants pour ${systemTypeUpper}: ${e.message}`;
     Logger.log(catchPrompt + ` (Stack: ${e.stack || 'N/A'})`);
-    // if (typeof Browser !== 'undefined' && Browser.msgBox) {
-    //   Browser.msgBox('Erreur', catchPrompt, Browser.ButtonSet.OK);
-    // }
   }
 }
 
 /**
- * Retrieves and logs stored API credentials.
+ * Stores DEV API credentials. User must edit placeholders.
+ */
+function storeDevApiCredentials() {
+  var username_dev = "VOTRE_USERNAME_DEV"; // REMPLACEZ CECI
+  var password_dev = "VOTRE_PASSWORD_DEV"; // REMPLACEZ CECI
+  Logger.log("Tentative de stockage des identifiants DEV. VEUILLEZ MODIFIER LES PLACEHOLDERS DANS LE CODE AVANT D'EXECUTER SI CE N'EST PAS FAIT.");
+  _storeApiCredentials("DEV", username_dev, password_dev);
+}
+
+/**
+ * Stores TEST API credentials. (Pré-rempli avec les infos fournies)
+ */
+function storeTestApiCredentials() {
+  var username_test = "360sc_DuhaldeTest"; // Pré-rempli
+  var password_test = "360sc_DuhaldeTest@360sc_DuhaldeTest"; // Pré-rempli
+  Logger.log("Tentative de stockage des identifiants TEST.");
+  _storeApiCredentials("TEST", username_test, password_test);
+}
+
+/**
+ * Stores PROD API credentials. User must edit placeholders.
+ */
+function storeProdApiCredentials() {
+  var username_prod = "VOTRE_USERNAME_PROD"; // REMPLACEZ CECI
+  var password_prod = "VOTRE_PASSWORD_PROD"; // REMPLACEZ CECI
+  Logger.log("Tentative de stockage des identifiants PROD. VEUILLEZ MODIFIER LES PLACEHOLDERS DANS LE CODE AVANT D'EXECUTER SI CE N'EST PAS FAIT.");
+  _storeApiCredentials("PROD", username_prod, password_prod);
+}
+
+
+/**
+ * Retrieves and logs stored API credentials for all configured environments.
  */
 function checkStoredApiCredentials() {
   try {
     const scriptProperties = PropertiesService.getScriptProperties();
-    const username = scriptProperties.getProperty('API_USERNAME');
-    const passwordIsSet = !!scriptProperties.getProperty('API_PASSWORD');
-
+    const environments = ["DEV", "TEST", "PROD"];
     Logger.log('Vérification des identifiants stockés :');
-    Logger.log('API_USERNAME: ' + (username || 'NON DÉFINI'));
-    Logger.log('API_PASSWORD est défini: ' + passwordIsSet);
 
-    // if (typeof Browser !== 'undefined' && Browser.msgBox) {
-    //   var msgTitle = 'Identifiants Stockés';
-    //   var msgPrompt = 'API_USERNAME: ' + (username || 'NON DÉFINI') + '\n' + 'API_PASSWORD est défini: ' + passwordIsSet.toString();
-    //   Browser.msgBox(msgTitle, msgPrompt, Browser.ButtonSet.OK);
-    // }
+    environments.forEach(env => {
+      const username = scriptProperties.getProperty(`API_USERNAME_${env}`);
+      const passwordIsSet = !!scriptProperties.getProperty(`API_PASSWORD_${env}`);
+      Logger.log(`--- ${env} ---`);
+      Logger.log(`API_USERNAME_${env}: ` + (username || 'NON DÉFINI'));
+      Logger.log(`API_PASSWORD_${env} est défini: ` + passwordIsSet);
+    });
+
   } catch (e) {
     var catchPrompt = `Une erreur est survenue lors de la vérification des identifiants : ${e.message}`;
     Logger.log(catchPrompt + ` (Stack: ${e.stack || 'N/A'})`);
-    // if (typeof Browser !== 'undefined' && Browser.msgBox) {
-    //   Browser.msgBox('Erreur', catchPrompt, Browser.ButtonSet.OK);
-    // }
   }
 }
 
 /**
- * Deletes stored API credentials from ScriptProperties.
+ * Deletes stored API credentials for a specific environment from ScriptProperties.
+ * @param {string} typeSysteme "DEV", "TEST", or "PROD".
  */
-function deleteStoredApiCredentials() {
+function deleteStoredApiCredentialsForEnv(typeSysteme) {
+  const systemTypeUpper = typeSysteme.toUpperCase();
+  if (!["DEV", "TEST", "PROD"].includes(systemTypeUpper)) {
+    Logger.log(`ERREUR: Type de système '${typeSysteme}' invalide pour la suppression des identifiants.`);
+    return;
+  }
   try {
     const scriptProperties = PropertiesService.getScriptProperties();
-    scriptProperties.deleteProperty('API_USERNAME');
-    scriptProperties.deleteProperty('API_PASSWORD');
+    scriptProperties.deleteProperty(`API_USERNAME_${systemTypeUpper}`);
+    scriptProperties.deleteProperty(`API_PASSWORD_${systemTypeUpper}`);
 
-    var successPrompt = 'Les identifiants API ont été supprimés de ScriptProperties.';
+    var successPrompt = `Les identifiants API pour ${systemTypeUpper} ont été supprimés de ScriptProperties.`;
     Logger.log(successPrompt);
-    // if (typeof Browser !== 'undefined' && Browser.msgBox) {
-    //   Browser.msgBox('Succès', successPrompt, Browser.ButtonSet.OK);
-    // }
   } catch (e) {
-    var catchPrompt = `Une erreur est survenue lors de la suppression des identifiants : ${e.message}`;
+    var catchPrompt = `Une erreur est survenue lors de la suppression des identifiants pour ${systemTypeUpper}: ${e.message}`;
     Logger.log(catchPrompt + ` (Stack: ${e.stack || 'N/A'})`);
-    // if (typeof Browser !== 'undefined' && Browser.msgBox) {
-    //   Browser.msgBox('Erreur', catchPrompt, Browser.ButtonSet.OK);
-    // }
   }
+}
+
+/**
+ * Deletes all known API credentials from ScriptProperties.
+ */
+function deleteAllStoredApiCredentials() {
+  Logger.log("Tentative de suppression de TOUS les identifiants API stockés (DEV, TEST, PROD).");
+  deleteStoredApiCredentialsForEnv("DEV");
+  deleteStoredApiCredentialsForEnv("TEST");
+  deleteStoredApiCredentialsForEnv("PROD");
+  Logger.log("Suppression de tous les identifiants API terminée.");
 }
