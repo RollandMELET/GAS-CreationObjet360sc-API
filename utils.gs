@@ -135,3 +135,56 @@ function deleteAllStoredApiCredentials() {
   deleteStoredApiCredentialsForEnv("PROD");
   Logger.log("Suppression de tous les identifiants API terminée.");
 }
+
+function temp_listTestEnvironmentFingers() {
+  const typeSysteme = "TEST";
+  let token;
+
+  try {
+    Logger.log(`Tentative d'obtention du token pour ${typeSysteme}...`);
+    token = getAuthToken_(typeSysteme); // Utilise la fonction existante
+    Logger.log(`Token pour ${typeSysteme} obtenu.`);
+  } catch (e) {
+    Logger.log(`Erreur lors de l'obtention du token pour ${typeSysteme}: ${e.message}`);
+    return;
+  }
+
+  const config = getConfiguration_(typeSysteme);
+  const fingersUrl = config.API_BASE_URL + "/api/fingers"; // L'endpoint est /api/fingers
+
+  const options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/json' // Demander du JSON
+    },
+    muteHttpExceptions: true // Pour voir le corps de la réponse même en cas d'erreur HTTP
+  };
+
+  try {
+    Logger.log(`Appel GET à ${fingersUrl} pour lister les fingers...`);
+    const response = UrlFetchApp.fetch(fingersUrl, options);
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    Logger.log(`Code de réponse: ${responseCode}`);
+    Logger.log(`Corps de la réponse (Fingers):`);
+    Logger.log(responseBody);
+
+    if (responseCode === 200) {
+      const jsonResponse = JSON.parse(responseBody);
+      // Logger les IDs et noms pour faciliter la recherche
+      if (jsonResponse['hydra:member'] && Array.isArray(jsonResponse['hydra:member'])) {
+        Logger.log("--- Liste des Fingers (ID et Nom) ---");
+        jsonResponse['hydra:member'].forEach(finger => {
+          Logger.log(`ID: ${finger.id}, Nom: ${finger.name || 'N/A'}, Description: ${finger.description || 'N/A'}`);
+        });
+        Logger.log("------------------------------------");
+      }
+    }
+
+  } catch (e) {
+    Logger.log(`Erreur lors de l'appel à ${fingersUrl}: ${e.message}`);
+    Logger.log(`Stacktrace: ${e.stack}`);
+  }
+}
