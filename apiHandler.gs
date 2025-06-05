@@ -1,8 +1,8 @@
 // FILENAME: apiHandler.gs
-// Version: 1.2.0
-// Date: 2025-06-01 17:00
+// Version: 1.2.1
+// Date: 2025-06-01 19:00
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Modifié pour gérer les identifiants API par typeSysteme et ajout paramètre metadataAvatarTypeId à createAvatar_.
+// Description: createAvatar_ ne passera generateMCFinger que s'il est défini et non-nul/vide dans la config.
 /**
  * @fileoverview Handles interactions with the 360sc API.
  */
@@ -74,22 +74,33 @@ function getAuthToken_(typeSysteme) {
  * @private
  */
 function createAvatar_(accessToken, typeSysteme, objectNameForApi, alphaId, metadataAvatarTypeId) {
-  const config = getConfiguration_(typeSysteme);
+  const config = getConfiguration_(typeSysteme); // Récupère toute la config, y compris GENERATE_MC_FINGER
   const avatarsUrl = config.API_BASE_URL + config.AVATARS_ENDPOINT;
 
   if (!metadataAvatarTypeId) {
-    Logger.log("ERREUR: metadataAvatarTypeId non fourni à createAvatar_. Utilisation d'un type par défaut impossible ou non souhaitée à ce stade.");
+    Logger.log("ERREUR: metadataAvatarTypeId non fourni à createAvatar_.");
     throw new Error("Le paramètre 'metadataAvatarTypeId' est requis pour createAvatar_.");
   }
 
   const payload = {
     name: objectNameForApi,
     alphaId: alphaId,
-    generateMCFinger: config.GENERATE_MC_FINGER,
+    // generateMCFinger sera ajouté conditionnellement ci-dessous
     generateMCQuantity: config.GENERATE_MC_QUANTITY,
     company: config.COMPANY_ID,
-    metadataAvatarType: metadataAvatarTypeId // Utilisation du paramètre dynamique
+    metadataAvatarType: metadataAvatarTypeId
   };
+
+  // N'ajoute generateMCFinger au payload que s'il est défini (non null, non undefined) et non une chaîne vide dans la config
+  if (config.GENERATE_MC_FINGER && String(config.GENERATE_MC_FINGER).trim() !== "") {
+    payload.generateMCFinger = config.GENERATE_MC_FINGER;
+  } else {
+    Logger.log(`Information: generateMCFinger n'est pas configuré, est null ou est vide pour l'environnement ${typeSysteme}. Il ne sera pas inclus dans le payload de création d'avatar.`);
+    // Si l'API exigeait que la clé soit présente mais avec la valeur null (par exemple, si `type: ["string", "null"]` pour ce champ le permettait explicitement):
+    // payload.generateMCFinger = null;
+    // Cependant, il est souvent plus sûr de ne pas envoyer la clé du tout si la valeur est optionnelle et "nulle".
+    // Ce comportement devra être validé par rapport aux exigences de l'API 360SmartConnect.
+  }
 
   const deduplicationId = Utilities.getUuid();
 
@@ -127,7 +138,6 @@ function createAvatar_(accessToken, typeSysteme, objectNameForApi, alphaId, meta
 
 /**
  * Retrieves the mcUrl for a given avatar.
- * (Cette fonction reste inchangée dans sa logique interne par rapport à la v1.1.0 car elle dépend seulement du token, typeSysteme et avatarApiIdPath)
  * @param {string} accessToken The API access token.
  * @param {string} typeSysteme "DEV", "TEST", or "PROD".
  * @param {string} avatarApiIdPath The "@id" of the avatar (e.g., "/api/avatars/xxxxxxxx").
@@ -136,7 +146,7 @@ function createAvatar_(accessToken, typeSysteme, objectNameForApi, alphaId, meta
  * @private
  */
 function getMcUrlForAvatar_(accessToken, typeSysteme, avatarApiIdPath) {
-  const config = getConfiguration_(typeSysteme); // Récupère la config pour API_BASE_URL et MCS_SUFFIX_PATH
+  const config = getConfiguration_(typeSysteme);
   const mcUrlFetchFullUrl = config.API_BASE_URL + avatarApiIdPath + config.MCS_SUFFIX_PATH;
 
   const options = {
