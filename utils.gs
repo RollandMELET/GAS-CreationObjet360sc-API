@@ -1,8 +1,9 @@
 // FILENAME: utils.gs
-// Version: 1.2.0
-// Date: 2025-06-01 17:00
+// Version: 1.3.0
+// Date: 2025-06-06 12:05
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Gestion des identifiants API par environnement (DEV, TEST, PROD).
+// Description: Ajout d'une fonction temporaire pour lister les Metadata Avatar Types de l'environnement DEV.
+
 /**
  * @fileoverview Utility functions for the script, including credential management.
  */
@@ -134,6 +135,60 @@ function deleteAllStoredApiCredentials() {
   deleteStoredApiCredentialsForEnv("TEST");
   deleteStoredApiCredentialsForEnv("PROD");
   Logger.log("Suppression de tous les identifiants API terminée.");
+}
+
+/**
+ * [TEMPORAIRE] Liste les Metadata Avatar Types pour l'environnement DEV.
+ */
+function temp_listDevMetadataAvatarTypes() {
+  const typeSysteme = "DEV";
+  let token;
+
+  try {
+    Logger.log(`Tentative d'obtention du token pour ${typeSysteme}...`);
+    token = getAuthToken_(typeSysteme);
+    Logger.log(`Token pour ${typeSysteme} obtenu.`);
+  } catch (e) {
+    Logger.log(`Erreur lors de l'obtention du token pour ${typeSysteme}: ${e.message}`);
+    return;
+  }
+
+  const config = getConfiguration_(typeSysteme);
+  const metadataUrl = config.API_BASE_URL + "/api/metadata_avatar_types";
+
+  const options = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/json'
+    },
+    muteHttpExceptions: true
+  };
+
+  try {
+    Logger.log(`Appel GET à ${metadataUrl} pour lister les Metadata Avatar Types...`);
+    const response = UrlFetchApp.fetch(metadataUrl, options);
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    Logger.log(`Code de réponse: ${responseCode}`);
+    Logger.log(`Corps de la réponse:`);
+    Logger.log(responseBody);
+
+    if (responseCode === 200) {
+      const jsonResponse = JSON.parse(responseBody);
+      if (jsonResponse['hydra:member'] && Array.isArray(jsonResponse['hydra:member'])) {
+        Logger.log("--- Liste des Metadata Avatar Types (ID, Nom, Description) ---");
+        jsonResponse['hydra:member'].forEach(item => {
+          Logger.log(`@id: ${item['@id']}, Nom: ${item.name || 'N/A'}, Description: ${item.description || 'N/A'}`);
+        });
+        Logger.log("---------------------------------------------------------");
+      }
+    }
+
+  } catch (e) {
+    Logger.log(`Erreur lors de l'appel à ${metadataUrl}: ${e.message}`);
+  }
 }
 
 function temp_listTestEnvironmentFingers() {
