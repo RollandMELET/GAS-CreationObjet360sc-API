@@ -1,14 +1,13 @@
 // FILENAME: Code.gs
-// Version: 1.7.0
-// Date: 2025-06-06 13:00
+// Version: 1.8.0
+// Date: 2025-06-07 10:00 // Modifié pour la date actuelle
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Refactor de creerObjetUnique360sc pour utiliser un mapping d'alphaId, simplifiant l'appel depuis AppSheet.
+// Description: Ajout de la fonction wrapper creerObjetUnique360scForAppSheet pour une intégration simplifiée avec AppSheet.
 /**
  * @fileoverview Main script functions callable from AppSheet and test wrappers.
  */
 
-// ... (les fonctions de test au début du fichier restent inchangées) ...
-// (maFonctionDeTestPourAuth, maFonctionDeTestPourCreerObjet, etc.)
+// ... (maFonctionDeTestPourAuth, maFonctionDeTestPourCreerObjet, etc. restent inchangées) ...
 function maFonctionDeTestPourAuth() {
   var testSystemType = "TEST"; // Modifier en "DEV", "TEST", ou "PROD"
   Logger.log("Appel de testAuthentication avec typeSysteme: " + testSystemType);
@@ -51,7 +50,6 @@ function maFonctionDeTestPourCreerMultiples_ERREUR() {
   Logger.log("Résultat attendu (erreur de type) : " + resultatErr);
 }
 
-// MISE À JOUR DE CETTE FONCTION DE TEST
 function maFonctionDeTestPourCreerObjetUnique() {
   var testNomDeObjetBase = "MonMouleFlexible";
   var testSystemType = "DEV";
@@ -61,7 +59,6 @@ function maFonctionDeTestPourCreerObjetUnique() {
   var resultatString = creerObjetUnique360sc(testNomDeObjetBase, testSystemType, "MOULE", testTypeMoule);
   Logger.log("Résultat de creerObjetUnique360sc (chaîne JSON): " + resultatString);
 }
-
 
 // ... (les fonctions testAllEnvironments, testEndToEnd_DEV, etc. restent inchangées) ...
 function testAllEnvironments() {
@@ -186,27 +183,28 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, typeMoule
   try {
     if (!nomDeObjetBase || String(nomDeObjetBase).trim() === "") { throw new Error("Le paramètre 'nomDeObjetBase' est requis."); }
     if (!typeSysteme || String(typeSysteme).trim() === "") { throw new Error("Le paramètre 'typeSysteme' est requis."); }
-    if (!typeMoule || String(typeMoule).trim() === "") { throw new Error("Le paramètre 'typeMoule' est requis."); }
+    if (!typeMoule || String(typeMoule).trim() === "") { throw new Error("Le paramètre 'typeMoule' est requis."); } // typeMoule est utilisé pour le mapping
 
     const systemTypeUpper = typeSysteme.toUpperCase();
     const config = getConfiguration_(systemTypeUpper);
     
-    // 1. Trouver l'alphaId technique à partir du nom amical
+    // 1. Trouver l'alphaId technique à partir du nom amical (typeMoule)
     const alphaIdSpecifique = ALPHA_ID_MAPPING[typeMoule];
     if (!alphaIdSpecifique) {
       throw new Error(`Type de moule inconnu : '${typeMoule}'. Valeurs possibles : ${Object.keys(ALPHA_ID_MAPPING).join(', ')}.`);
     }
 
-    // 2. Trouver le metadataAvatarTypeId à partir du type d'objet général
-    const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "DEFAULT";
+    // 2. Trouver le metadataAvatarTypeId à partir du type d'objet général (typeObjet, ex: "MOULE")
+    const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "DEFAULT"; // S'assurer que typeObjet est bien passé
     const metadataAvatarTypeId = config.METADATA_AVATAR_TYPES[typeObjetUpper] || config.METADATA_AVATAR_TYPES.DEFAULT;
     
     if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) {
-      throw new Error(`Type d'objet général '${typeObjet}' non supporté ou non configuré pour l'environnement ${systemTypeUpper}.`);
+      // Utiliser typeObjetUpper pour le message d'erreur
+      throw new Error(`Type d'objet général '${typeObjetUpper}' non supporté ou non configuré pour l'environnement ${systemTypeUpper}. Vérifiez METADATA_AVATAR_TYPES dans config.gs.`);
     }
     
     const objectNameForApi = `${alphaIdSpecifique}:${nomDeObjetBase}`;
-    Logger.log(`Début création objet unique: ${objectNameForApi} (typeMoule: ${typeMoule})`);
+    Logger.log(`Début création objet unique: ${objectNameForApi} (typeMoule: ${typeMoule}, alphaId: ${alphaIdSpecifique}) pour l'environnement ${systemTypeUpper}`);
     
     const token = getAuthToken_(systemTypeUpper);
     const avatarIdPath = createAvatar_(token, systemTypeUpper, objectNameForApi, alphaIdSpecifique, metadataAvatarTypeId);
@@ -222,10 +220,62 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, typeMoule
     finalOutput.message = "Une erreur est survenue lors de la création de l'objet unique.";
     finalOutput.error = error.message;
     finalOutput.details_stack = error.stack ? error.stack.substring(0, 500) : 'N/A';
+    Logger.log(`Erreur globale dans creerObjetUnique360sc: ${finalOutput.error}. Input: nomDeObjetBase=${nomDeObjetBase}, typeSysteme=${typeSysteme}, typeObjet=${typeObjet}, typeMoule=${typeMoule}`);
   }
 
   return JSON.stringify(finalOutput);
 }
+
+// --- NOUVELLE FONCTION WRAPPER POUR APPSHEET ---
+/**
+ * [APPSHEET-HELPER] Crée un objet unique 360sc (spécifiquement pour Moule) et retourne directement l'URL mc ou un message d'erreur.
+ * Cette fonction est conçue pour être facilement appelée depuis AppSheet.
+ * @customfunction
+ * @param {string} nomDeObjetBase Le nom de base pour le moule (ex: "MonMouleXYZ").
+ * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
+ * @param {string} typeMoule Le type spécifique de moule (ex: "MouleEnveloppe"), qui correspond à une clé dans ALPHA_ID_MAPPING.
+ * @return {string} L'URL mc de l'objet créé en cas de succès, ou un message préfixé par "ERREUR: " en cas d'échec.
+ */
+function creerObjetUnique360scForAppSheet(nomDeObjetBase, typeSysteme, typeMoule) {
+  Logger.log(`Appel de creerObjetUnique360scForAppSheet avec nomDeObjetBase: ${nomDeObjetBase}, typeSysteme: ${typeSysteme}, typeMoule: ${typeMoule}`);
+  
+  // Appel de la fonction existante, en passant "MOULE" comme typeObjet général
+  const resultString = creerObjetUnique360sc(nomDeObjetBase, typeSysteme, "MOULE", typeMoule);
+  
+  try {
+    const result = JSON.parse(resultString);
+    if (result.success && result.mcUrl) {
+      Logger.log(`Succès pour AppSheet. mcUrl: ${result.mcUrl}`);
+      return result.mcUrl;
+    } else {
+      const errorMessage = `ERREUR: ${result.error || result.message || 'Erreur inconnue.'}`;
+      Logger.log(errorMessage);
+      return errorMessage;
+    }
+  } catch (e) {
+    const criticalError = `ERREUR CRITIQUE PARSING: ${e.message}. Réponse brute: ${resultString}`;
+    Logger.log(criticalError);
+    return criticalError;
+  }
+}
+
+// --- FONCTION DE TEST POUR LE WRAPPER APPSHEET ---
+function maFonctionDeTestPourCreerObjetUniqueForAppSheet() {
+  var testNomDeObjetBase = "MonMoulePourAppSheet";
+  var testSystemType = "DEV"; // Assurez-vous que DEV est configuré
+  var testTypeMoule = "MouleEnveloppe"; // Doit exister dans ALPHA_ID_MAPPING
+
+  Logger.log(`Test de creerObjetUnique360scForAppSheet: nomBase=${testNomDeObjetBase}, typeSys=${testSystemType}, typeMoule=${testTypeMoule}`);
+  var resultat = creerObjetUnique360scForAppSheet(testNomDeObjetBase, testSystemType, testTypeMoule);
+  Logger.log(`Résultat du test pour AppSheet: ${resultat}`);
+
+  // Test d'un cas d'erreur (typeMoule incorrect)
+  var testTypeMouleInexistant = "TypeMouleQuiNexistePas";
+  Logger.log(`Test d'erreur de creerObjetUnique360scForAppSheet: nomBase=${testNomDeObjetBase}, typeSys=${testSystemType}, typeMoule=${testTypeMouleInexistant}`);
+  var resultatErreur = creerObjetUnique360scForAppSheet(testNomDeObjetBase, testSystemType, testTypeMouleInexistant);
+  Logger.log(`Résultat du test d'erreur pour AppSheet: ${resultatErreur}`);
+}
+
 
 // ... (les fonctions testAuthentication et testCreateSingleObject restent inchangées) ...
 function testAuthentication(typeSysteme) {
