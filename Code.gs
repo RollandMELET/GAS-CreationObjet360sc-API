@@ -1,14 +1,14 @@
 // FILENAME: Code.gs
-// Version: 1.6.1
-// Date: 2025-06-06 12:35
+// Version: 1.7.0
+// Date: 2025-06-06 13:00
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Correction d'une régression où `config.typeSysteme` (undefined) était utilisé au lieu de la variable `typeSysteme`.
+// Description: Refactor de creerObjetUnique360sc pour utiliser un mapping d'alphaId, simplifiant l'appel depuis AppSheet.
 /**
  * @fileoverview Main script functions callable from AppSheet and test wrappers.
  */
 
-// --- Fonctions de test spécifiques pour l'éditeur Apps Script ---
-
+// ... (les fonctions de test au début du fichier restent inchangées) ...
+// (maFonctionDeTestPourAuth, maFonctionDeTestPourCreerObjet, etc.)
 function maFonctionDeTestPourAuth() {
   var testSystemType = "TEST"; // Modifier en "DEV", "TEST", ou "PROD"
   Logger.log("Appel de testAuthentication avec typeSysteme: " + testSystemType);
@@ -51,24 +51,19 @@ function maFonctionDeTestPourCreerMultiples_ERREUR() {
   Logger.log("Résultat attendu (erreur de type) : " + resultatErr);
 }
 
+// MISE À JOUR DE CETTE FONCTION DE TEST
 function maFonctionDeTestPourCreerObjetUnique() {
   var testNomDeObjetBase = "MonMouleFlexible";
   var testSystemType = "DEV";
-  var testTypeObjet = "MOULE";
-  var testAlphaId = "v0:MOULE_CORPS";
+  var testTypeMoule = "MouleEnveloppe"; // On utilise maintenant le nom amical
   
-  Logger.log(`Appel de creerObjetUnique360sc (test) avec: nomBase=${testNomDeObjetBase}, typeSys=${testSystemType}, typeObj=${testTypeObjet}, alphaId=${testAlphaId}`);
-  var resultatString = creerObjetUnique360sc(testNomDeObjetBase, testSystemType, testTypeObjet, testAlphaId);
+  Logger.log(`Appel de creerObjetUnique360sc (test) avec: nomBase=${testNomDeObjetBase}, typeSys=${testSystemType}, typeMoule=${testTypeMoule}`);
+  var resultatString = creerObjetUnique360sc(testNomDeObjetBase, testSystemType, "MOULE", testTypeMoule);
   Logger.log("Résultat de creerObjetUnique360sc (chaîne JSON): " + resultatString);
 }
 
 
-// --- NOUVELLES FONCTIONS DE TEST END-TO-END PAR ENVIRONNEMENT ---
-
-/**
- * Exécute une suite de tests complète, un environnement à la fois.
- * ATTENTION : Le test pour l'environnement PROD est désactivé par défaut pour des raisons de sécurité.
- */
+// ... (les fonctions testAllEnvironments, testEndToEnd_DEV, etc. restent inchangées) ...
 function testAllEnvironments() {
   Logger.log("====== DÉBUT DE LA SUITE DE TESTS COMPLÈTE ======");
   
@@ -93,9 +88,6 @@ function testAllEnvironments() {
   Logger.log("====== FIN DE LA SUITE DE TESTS COMPLÈTE ======");
 }
 
-/**
- * [TEST E2E] Teste la création multiple d'OF sur l'environnement DEV.
- */
 function testEndToEnd_DEV() {
   Logger.log("--- DÉBUT TEST END-TO-END: ENVIRONNEMENT DEV ---");
   const nomObjet = "TestE2EDevOF-" + new Date().getTime(); 
@@ -104,9 +96,6 @@ function testEndToEnd_DEV() {
   Logger.log("--- FIN TEST END-TO-END: ENVIRONNEMENT DEV ---\n");
 }
 
-/**
- * [TEST E2E] Teste la création multiple d'OF sur l'environnement TEST.
- */
 function testEndToEnd_TEST() {
   Logger.log("--- DÉBUT TEST END-TO-END: ENVIRONNEMENT TEST ---");
   const nomObjet = "TestE2ETestOF-" + new Date().getTime();
@@ -115,11 +104,6 @@ function testEndToEnd_TEST() {
   Logger.log("--- FIN TEST END-TO-END: ENVIRONNEMENT TEST ---\n");
 }
 
-/**
- * [TEST E2E] Teste la création multiple d'OF sur l'environnement PROD.
- * ATTENTION: Ce test crée des données réelles sur votre environnement de production.
- * Il est DÉSACTIVÉ par défaut.
- */
 function testEndToEnd_PROD() {
   const canRunProdTest = false; 
   Logger.log("--- DÉBUT TEST END-TO-END: ENVIRONNEMENT PROD ---");
@@ -142,6 +126,7 @@ function testEndToEnd_PROD() {
  * @customfunction
  */
 function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
+  // ... (contenu de cette fonction inchangé) ...
   let finalOutput = { success: false, message: "" };
 
   try {
@@ -190,27 +175,38 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
 /**
  * [GENERIQUE] Crée un unique objet 360sc et retourne son URL mc.
  * @customfunction
+ * @param {string} nomDeObjetBase Le nom de base pour l'objet (ex: "MonMouleXYZ").
+ * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
+ * @param {string} typeObjet Le type général d'objet (ex: "MOULE"). Utilisé pour trouver le bon metadataAvatarTypeId.
+ * @param {string} typeMoule Le type spécifique de moule (ex: "MouleEnveloppe"). Utilisé pour trouver le bon alphaId via ALPHA_ID_MAPPING.
  */
-function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, alphaIdSpecifique) {
+function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, typeMoule) {
   let finalOutput = { success: false, message: "" };
 
   try {
     if (!nomDeObjetBase || String(nomDeObjetBase).trim() === "") { throw new Error("Le paramètre 'nomDeObjetBase' est requis."); }
     if (!typeSysteme || String(typeSysteme).trim() === "") { throw new Error("Le paramètre 'typeSysteme' est requis."); }
-    if (!alphaIdSpecifique || String(alphaIdSpecifique).trim() === "") { throw new Error("Le paramètre 'alphaIdSpecifique' est requis."); }
+    if (!typeMoule || String(typeMoule).trim() === "") { throw new Error("Le paramètre 'typeMoule' est requis."); }
 
     const systemTypeUpper = typeSysteme.toUpperCase();
     const config = getConfiguration_(systemTypeUpper);
     
+    // 1. Trouver l'alphaId technique à partir du nom amical
+    const alphaIdSpecifique = ALPHA_ID_MAPPING[typeMoule];
+    if (!alphaIdSpecifique) {
+      throw new Error(`Type de moule inconnu : '${typeMoule}'. Valeurs possibles : ${Object.keys(ALPHA_ID_MAPPING).join(', ')}.`);
+    }
+
+    // 2. Trouver le metadataAvatarTypeId à partir du type d'objet général
     const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "DEFAULT";
     const metadataAvatarTypeId = config.METADATA_AVATAR_TYPES[typeObjetUpper] || config.METADATA_AVATAR_TYPES.DEFAULT;
     
     if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) {
-      throw new Error(`Type d'objet '${typeObjet}' non supporté ou non configuré pour l'environnement ${systemTypeUpper}.`);
+      throw new Error(`Type d'objet général '${typeObjet}' non supporté ou non configuré pour l'environnement ${systemTypeUpper}.`);
     }
     
     const objectNameForApi = `${alphaIdSpecifique}:${nomDeObjetBase}`;
-    Logger.log(`Début création objet unique: ${objectNameForApi}`);
+    Logger.log(`Début création objet unique: ${objectNameForApi} (typeMoule: ${typeMoule})`);
     
     const token = getAuthToken_(systemTypeUpper);
     const avatarIdPath = createAvatar_(token, systemTypeUpper, objectNameForApi, alphaIdSpecifique, metadataAvatarTypeId);
@@ -231,10 +227,7 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, alphaIdSp
   return JSON.stringify(finalOutput);
 }
 
-/**
- * Teste l'authentification.
- * @customfunction
- */
+// ... (les fonctions testAuthentication et testCreateSingleObject restent inchangées) ...
 function testAuthentication(typeSysteme) {
   let finalOutput = { success: false, message: "" };
   try {
@@ -249,10 +242,6 @@ function testAuthentication(typeSysteme) {
   return JSON.stringify(finalOutput);
 }
 
-/**
- * Teste la création d'un seul objet.
- * @customfunction
- */
 function testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest, metadataAvatarTypeIdTest) {
   let finalOutput = { success: false, message: "" };
   try {
