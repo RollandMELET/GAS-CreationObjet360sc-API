@@ -1,8 +1,8 @@
 // FILENAME: config.gs
-// Version: 1.2.0
-// Date: 2025-06-06 12:05
+// Version: 1.3.0
+// Date: 2025-06-06 12:25
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Déplacement des METADATA_AVATAR_TYPES dans la configuration de chaque environnement pour la spécificité.
+// Description: Mise à jour avec les METADATA_AVATAR_TYPES spécifiques à l'environnement DEV.
 /**
  * @fileoverview Configuration settings for the 360sc API interaction script.
  */
@@ -22,10 +22,9 @@ const ENV_CONFIG = {
     COMPANY_ID: "/api/companies/683097e698355",
     GENERATE_MC_FINGER: "/api/fingers/53ad7037-b20f-11ea-9cf3-00505692e487",
     METADATA_AVATAR_TYPES: {
-      // COLLEZ ICI L'ID TROUVÉ À L'ÉTAPE 1
-      OF: "VOTRE_METADATA_ID_OF_POUR_DEV", 
-      MOULE: "VOTRE_METADATA_ID_MOULE_POUR_DEV", // À trouver également si nécessaire
-      DEFAULT: "VOTRE_METADATA_ID_DEFAULT_POUR_DEV"  // À trouver également si nécessaire
+      OF: "/api/metadata_avatar_types/68309961b20ee",
+      MOULE: "/api/metadata_avatar_types/68309a60e3f94",
+      DEFAULT: "/api/metadata_avatar_types/683097e6c75c7"
     }
   },
   TEST: {
@@ -43,6 +42,7 @@ const ENV_CONFIG = {
     COMPANY_ID: "VOTRE_ID_COMPANIE_PROD",
     GENERATE_MC_FINGER: "VOTRE_MC_FINGER_ID_POUR_PROD",
     METADATA_AVATAR_TYPES: {
+      // NOTE: Ces valeurs pour PROD devront être vérifiées de la même manière.
       OF: "VOTRE_METADATA_ID_OF_POUR_PROD",       // À REMPLACER
       MOULE: "VOTRE_METADATA_ID_MOULE_POUR_PROD", // À REMPLACER
       DEFAULT: "VOTRE_METADATA_ID_DEFAULT_POUR_PROD"  // À REMPLACER
