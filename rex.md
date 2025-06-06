@@ -65,4 +65,26 @@
 
 ---
 
+## REX Item 3: Incohérence des ID de Ressources entre les Environnements
+
+*   **Problème:**
+    Échec des tests sur l'environnement DEV avec une erreur API 400 - `Item not found` pour `metadata_avatar_types`.
+
+*   **Description:**
+    Après avoir résolu les problèmes de configuration pour `GENERATE_MC_FINGER` (spécifique à chaque environnement), la suite de tests a révélé que les identifiants pour `METADATA_AVATAR_TYPES` (ex: pour "OF") étaient également différents entre l'environnement DEV (`apiv2preprod.360sc.yt`) et l'environnement TEST (`apiv2.360sc.yt`). La configuration initiale les définissait comme des constantes globales, supposant qu'ils étaient identiques partout.
+
+*   **Impact:**
+    Échec systématique de la création d'avatars sur l'environnement DEV, bien que l'environnement TEST fonctionnait parfaitement. Cela a bloqué la validation complète du script.
+
+*   **Solution Appliquée:**
+    1.  **Investigation :** Création d'une fonction de listing temporaire (`temp_listDevMetadataAvatarTypes`) dans `utils.gs` pour interroger l'endpoint `/api/metadata_avatar_types` sur l'environnement DEV et récupérer les identifiants corrects.
+    2.  **Refactoring de `config.gs` :** La constante globale `METADATA_AVATAR_TYPES` a été supprimée. Elle a été déplacée à l'intérieur de chaque objet d'environnement (`ENV_CONFIG.DEV`, `ENV_CONFIG.TEST`, etc.), rendant ainsi les ID de types d'avatar spécifiques à chaque environnement.
+    3.  **Adaptation de `Code.gs` :** Les fonctions principales ont été mises à jour pour récupérer les ID de `metadataAvatarTypeId` depuis l'objet de configuration spécifique à l'environnement (`config.METADATA_AVATAR_TYPES.OF`) au lieu de la constante globale.
+
+*   **Leçons Apprises:**
+    1.  **Principe de Ségrégation Totale des Configurations :** Il faut présumer que **toutes** les valeurs de configuration qui sont des identifiants de ressources (ex: `/api/companies/ID`, `/api/fingers/ID`, `/api/metadata_avatar_types/ID`) sont uniques à chaque environnement. La meilleure pratique est de définir toutes ces valeurs au sein d'une structure de configuration par environnement, plutôt que de les partager globalement.
+    2.  **Valider Systématiquement les Hypothèses :** Ne jamais supposer qu'une configuration d'un environnement fonctionnera sur un autre. Utiliser des fonctions de test et des outils d'investigation (comme les fonctions de listing temporaires) est une étape de validation cruciale lors de l'ajout d'un nouvel environnement.
+    3.  **Robustesse du Code :** La structure finale est plus robuste car elle force le développeur à trouver et à renseigner explicitement les valeurs pour chaque environnement, réduisant ainsi les risques d'erreurs lors du passage en production.
+
 Ce rapport peut être complété au fur et à mesure que nous avançons dans le projet et que nous rencontrons d'autres points d'apprentissage.
+

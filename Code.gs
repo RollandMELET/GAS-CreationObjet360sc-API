@@ -1,8 +1,8 @@
 // FILENAME: Code.gs
-// Version: 1.6.0
-// Date: 2025-06-06 12:05
+// Version: 1.6.1
+// Date: 2025-06-06 12:35
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Adaptation du code pour utiliser les METADATA_AVATAR_TYPES depuis la config d'environnement.
+// Description: Correction d'une régression où `config.typeSysteme` (undefined) était utilisé au lieu de la variable `typeSysteme`.
 /**
  * @fileoverview Main script functions callable from AppSheet and test wrappers.
  */
@@ -24,9 +24,8 @@ function maFonctionDeTestPourCreerObjet() {
   var testSystemType = "DEV";
   var testNomObjetBase = "TestUniqueObj";
   var testAlphaId = "v0:OF_PRINCIPAL";
-  // Note: Ce test devra être adapté car la config est maintenant dynamique
-  var testConfig = getConfiguration_(testSystemType);
-  var testMetadataTypeId = testConfig.METADATA_AVATAR_TYPES.OF;
+  var config = getConfiguration_(testSystemType);
+  var testMetadataTypeId = config.METADATA_AVATAR_TYPES.OF;
 
   Logger.log(`Appel de testCreateSingleObject avec: typeSys=${testSystemType}, nomBase=${testNomObjetBase}, alphaId=${testAlphaId}, metaTypeId=${testMetadataTypeId}`);
   var resultatString = testCreateSingleObject(testSystemType, testNomObjetBase, testAlphaId, testMetadataTypeId);
@@ -99,7 +98,6 @@ function testAllEnvironments() {
  */
 function testEndToEnd_DEV() {
   Logger.log("--- DÉBUT TEST END-TO-END: ENVIRONNEMENT DEV ---");
-  // Utilise un nom unique pour éviter les conflits
   const nomObjet = "TestE2EDevOF-" + new Date().getTime(); 
   const resultat = creerMultiplesObjets360sc(nomObjet, "DEV", "OF");
   Logger.log("Résultat DEV: " + resultat);
@@ -123,21 +121,13 @@ function testEndToEnd_TEST() {
  * Il est DÉSACTIVÉ par défaut.
  */
 function testEndToEnd_PROD() {
-  // --- SÉCURITÉ ---
-  // Changez cette variable à 'true' pour exécuter le test sur l'environnement PROD.
   const canRunProdTest = false; 
-  // -----------------
-
   Logger.log("--- DÉBUT TEST END-TO-END: ENVIRONNEMENT PROD ---");
-
   if (!canRunProdTest) {
     Logger.log("AVERTISSEMENT: Le test PROD est désactivé par sécurité. Pour l'exécuter, modifiez la variable 'canRunProdTest' à 'true' dans le code de cette fonction.");
     Logger.log("--- FIN TEST END-TO-END: ENVIRONNEMENT PROD (NON EXÉCUTÉ) ---\n");
     return;
   }
-  
-  // N'oubliez pas de configurer les identifiants PROD via storeProdApiCredentials()
-  // et de remplir les valeurs dans config.gs pour PROD.
   const nomObjet = "TestE2EProdOF-" + new Date().getTime();
   const resultat = creerMultiplesObjets360sc(nomObjet, "PROD", "OF");
   Logger.log("Résultat PROD: " + resultat);
@@ -158,8 +148,8 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
     if (!nomDeObjetBase || String(nomDeObjetBase).trim() === "") { throw new Error("Le paramètre 'nomDeObjetBase' est requis."); }
     if (!typeSysteme || String(typeSysteme).trim() === "") { throw new Error("Le paramètre 'typeSysteme' est requis."); }
     
-    // Récupération de la configuration AVANT toute chose
-    const config = getConfiguration_(typeSysteme);
+    const systemTypeUpper = typeSysteme.toUpperCase();
+    const config = getConfiguration_(systemTypeUpper);
     
     const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "OF";
     if (typeObjetUpper !== 'OF') {
@@ -168,17 +158,17 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
     
     const metadataAvatarTypeId = config.METADATA_AVATAR_TYPES.OF;
     if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) {
-      throw new Error(`Le 'METADATA_AVATAR_TYPES.OF' n'est pas configuré pour l'environnement ${config.typeSysteme}.`);
+      throw new Error(`Le 'METADATA_AVATAR_TYPES.OF' n'est pas configuré pour l'environnement ${systemTypeUpper}.`);
     }
 
-    Logger.log(`Début création multiple pour OF '${nomDeObjetBase}', système: ${config.typeSysteme}`);
-    const token = getAuthToken_(config.typeSysteme);
+    Logger.log(`Début création multiple pour OF '${nomDeObjetBase}', système: ${systemTypeUpper}`);
+    const token = getAuthToken_(systemTypeUpper);
 
     for (const objDef of OBJECT_DEFINITIONS) {
       const objectNameForApi = `${objDef.alphaId}:${nomDeObjetBase}${objDef.nameSuffix}`;
       try {
-        const avatarIdPath = createAvatar_(token, config.typeSysteme, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
-        finalOutput[objDef.key] = getMcUrlForAvatar_(token, config.typeSysteme, avatarIdPath);
+        const avatarIdPath = createAvatar_(token, systemTypeUpper, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
+        finalOutput[objDef.key] = getMcUrlForAvatar_(token, systemTypeUpper, avatarIdPath);
       } catch (e) {
         throw new Error(`Échec à l'étape '${objDef.key}': ${e.message}`);
       }
@@ -209,24 +199,25 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, alphaIdSp
     if (!typeSysteme || String(typeSysteme).trim() === "") { throw new Error("Le paramètre 'typeSysteme' est requis."); }
     if (!alphaIdSpecifique || String(alphaIdSpecifique).trim() === "") { throw new Error("Le paramètre 'alphaIdSpecifique' est requis."); }
 
-    const config = getConfiguration_(typeSysteme);
+    const systemTypeUpper = typeSysteme.toUpperCase();
+    const config = getConfiguration_(systemTypeUpper);
     
     const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "DEFAULT";
     const metadataAvatarTypeId = config.METADATA_AVATAR_TYPES[typeObjetUpper] || config.METADATA_AVATAR_TYPES.DEFAULT;
     
     if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) {
-      throw new Error(`Type d'objet '${typeObjet}' non supporté ou non configuré pour l'environnement ${config.typeSysteme}.`);
+      throw new Error(`Type d'objet '${typeObjet}' non supporté ou non configuré pour l'environnement ${systemTypeUpper}.`);
     }
     
     const objectNameForApi = `${alphaIdSpecifique}:${nomDeObjetBase}`;
     Logger.log(`Début création objet unique: ${objectNameForApi}`);
     
-    const token = getAuthToken_(config.typeSysteme);
-    const avatarIdPath = createAvatar_(token, config.typeSysteme, objectNameForApi, alphaIdSpecifique, metadataAvatarTypeId);
+    const token = getAuthToken_(systemTypeUpper);
+    const avatarIdPath = createAvatar_(token, systemTypeUpper, objectNameForApi, alphaIdSpecifique, metadataAvatarTypeId);
 
     finalOutput.success = true;
     finalOutput.message = `Objet unique '${objectNameForApi}' créé avec succès.`;
-    finalOutput.mcUrl = getMcUrlForAvatar_(token, config.typeSysteme, avatarIdPath);
+    finalOutput.mcUrl = getMcUrlForAvatar_(token, systemTypeUpper, avatarIdPath);
     finalOutput.avatarApiIdPath = avatarIdPath;
     finalOutput.objectNameCreated = objectNameForApi;
     
@@ -248,9 +239,10 @@ function testAuthentication(typeSysteme) {
   let finalOutput = { success: false, message: "" };
   try {
     if (!typeSysteme) throw new Error("'typeSysteme' est requis.");
-    const token = getAuthToken_(typeSysteme.toUpperCase());
+    const systemTypeUpper = typeSysteme.toUpperCase();
+    const token = getAuthToken_(systemTypeUpper);
     finalOutput.success = true;
-    finalOutput.message = `Authentification réussie pour ${typeSysteme.toUpperCase()}.`;
+    finalOutput.message = `Authentification réussie pour ${systemTypeUpper}.`;
   } catch (e) {
     finalOutput.error = e.message;
   }
@@ -264,13 +256,13 @@ function testAuthentication(typeSysteme) {
 function testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest, metadataAvatarTypeIdTest) {
   let finalOutput = { success: false, message: "" };
   try {
-    const config = getConfiguration_(typeSysteme);
-    const token = getAuthToken_(config.typeSysteme);
+    const systemTypeUpper = typeSysteme.toUpperCase();
+    const token = getAuthToken_(systemTypeUpper);
     const objectNameForApiTest = `${alphaIdTest}:${nomObjetTestBase}`;
-    const avatarIdPath = createAvatar_(token, config.typeSysteme, objectNameForApiTest, alphaIdTest, metadataAvatarTypeIdTest);
-    const mcUrl = getMcUrlForAvatar_(token, config.typeSysteme, avatarIdPath);
+    const avatarIdPath = createAvatar_(token, systemTypeUpper, objectNameForApiTest, alphaIdTest, metadataAvatarTypeIdTest);
+    const mcUrl = getMcUrlForAvatar_(token, systemTypeUpper, avatarIdPath);
     finalOutput.success = true;
-    finalOutput.message = `Objet unique (${config.typeSysteme}) créé.`;
+    finalOutput.message = `Objet unique (${systemTypeUpper}) créé.`;
     finalOutput.avatarApiIdPath = avatarIdPath;
     finalOutput.mcUrl = mcUrl;
   } catch (e) {

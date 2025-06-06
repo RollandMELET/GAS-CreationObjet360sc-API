@@ -1,9 +1,8 @@
 // FILENAME: utils.gs
-// Version: 1.3.0
-// Date: 2025-06-06 12:05
+// Version: 1.4.0
+// Date: 2025-06-06 12:40
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout d'une fonction temporaire pour lister les Metadata Avatar Types de l'environnement DEV.
-
+// Description: Suppression des fonctions de diagnostic temporaires (`temp_...`) maintenant que les configurations sont validées.
 /**
  * @fileoverview Utility functions for the script, including credential management.
  */
@@ -135,111 +134,4 @@ function deleteAllStoredApiCredentials() {
   deleteStoredApiCredentialsForEnv("TEST");
   deleteStoredApiCredentialsForEnv("PROD");
   Logger.log("Suppression de tous les identifiants API terminée.");
-}
-
-/**
- * [TEMPORAIRE] Liste les Metadata Avatar Types pour l'environnement DEV.
- */
-function temp_listDevMetadataAvatarTypes() {
-  const typeSysteme = "DEV";
-  let token;
-
-  try {
-    Logger.log(`Tentative d'obtention du token pour ${typeSysteme}...`);
-    token = getAuthToken_(typeSysteme);
-    Logger.log(`Token pour ${typeSysteme} obtenu.`);
-  } catch (e) {
-    Logger.log(`Erreur lors de l'obtention du token pour ${typeSysteme}: ${e.message}`);
-    return;
-  }
-
-  const config = getConfiguration_(typeSysteme);
-  const metadataUrl = config.API_BASE_URL + "/api/metadata_avatar_types";
-
-  const options = {
-    method: 'get',
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'Accept': 'application/json'
-    },
-    muteHttpExceptions: true
-  };
-
-  try {
-    Logger.log(`Appel GET à ${metadataUrl} pour lister les Metadata Avatar Types...`);
-    const response = UrlFetchApp.fetch(metadataUrl, options);
-    const responseCode = response.getResponseCode();
-    const responseBody = response.getContentText();
-
-    Logger.log(`Code de réponse: ${responseCode}`);
-    Logger.log(`Corps de la réponse:`);
-    Logger.log(responseBody);
-
-    if (responseCode === 200) {
-      const jsonResponse = JSON.parse(responseBody);
-      if (jsonResponse['hydra:member'] && Array.isArray(jsonResponse['hydra:member'])) {
-        Logger.log("--- Liste des Metadata Avatar Types (ID, Nom, Description) ---");
-        jsonResponse['hydra:member'].forEach(item => {
-          Logger.log(`@id: ${item['@id']}, Nom: ${item.name || 'N/A'}, Description: ${item.description || 'N/A'}`);
-        });
-        Logger.log("---------------------------------------------------------");
-      }
-    }
-
-  } catch (e) {
-    Logger.log(`Erreur lors de l'appel à ${metadataUrl}: ${e.message}`);
-  }
-}
-
-function temp_listTestEnvironmentFingers() {
-  const typeSysteme = "TEST";
-  let token;
-
-  try {
-    Logger.log(`Tentative d'obtention du token pour ${typeSysteme}...`);
-    token = getAuthToken_(typeSysteme); // Utilise la fonction existante
-    Logger.log(`Token pour ${typeSysteme} obtenu.`);
-  } catch (e) {
-    Logger.log(`Erreur lors de l'obtention du token pour ${typeSysteme}: ${e.message}`);
-    return;
-  }
-
-  const config = getConfiguration_(typeSysteme);
-  const fingersUrl = config.API_BASE_URL + "/api/fingers"; // L'endpoint est /api/fingers
-
-  const options = {
-    method: 'get',
-    headers: {
-      'Authorization': 'Bearer ' + token,
-      'Accept': 'application/json' // Demander du JSON
-    },
-    muteHttpExceptions: true // Pour voir le corps de la réponse même en cas d'erreur HTTP
-  };
-
-  try {
-    Logger.log(`Appel GET à ${fingersUrl} pour lister les fingers...`);
-    const response = UrlFetchApp.fetch(fingersUrl, options);
-    const responseCode = response.getResponseCode();
-    const responseBody = response.getContentText();
-
-    Logger.log(`Code de réponse: ${responseCode}`);
-    Logger.log(`Corps de la réponse (Fingers):`);
-    Logger.log(responseBody);
-
-    if (responseCode === 200) {
-      const jsonResponse = JSON.parse(responseBody);
-      // Logger les IDs et noms pour faciliter la recherche
-      if (jsonResponse['hydra:member'] && Array.isArray(jsonResponse['hydra:member'])) {
-        Logger.log("--- Liste des Fingers (ID et Nom) ---");
-        jsonResponse['hydra:member'].forEach(finger => {
-          Logger.log(`ID: ${finger.id}, Nom: ${finger.name || 'N/A'}, Description: ${finger.description || 'N/A'}`);
-        });
-        Logger.log("------------------------------------");
-      }
-    }
-
-  } catch (e) {
-    Logger.log(`Erreur lors de l'appel à ${fingersUrl}: ${e.message}`);
-    Logger.log(`Stacktrace: ${e.stack}`);
-  }
 }
