@@ -1,8 +1,8 @@
 // FILENAME: Code.gs
-// Version: 1.5.0
-// Date: 2025-06-01 21:30
+// Version: 1.5.1
+// Date: 2025-06-06 11:20
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout du paramètre alphaIdSpecifique à creerObjetUnique360sc pour plus de flexibilité.
+// Description: Ajout d'une validation pour s'assurer que creerMultiplesObjets360sc est exclusivement utilisé pour le type 'OF'. Mise à jour des commentaires.
 /**
  * @fileoverview Main script functions callable from AppSheet and test wrappers.
  */
@@ -39,10 +39,10 @@ function maFonctionDeTestPourCreerObjet() {
 function maFonctionDeTestPourCreerMultiples_SUCCES() {
   var testSystemType = "DEV";
   var testNomDeObjetBase = "MonProjetMultiSucces";
-  var testTypeObjet = "OF"; // "OF" ou "MOULE"
+  var testTypeObjet = "OF"; // Seul type valide
   Logger.log(`Appel de creerMultiplesObjets360sc (test SUCCES) avec: typeSys=${testSystemType}, nomBase=${testNomDeObjetBase}, typeObj=${testTypeObjet}`);
   var resultatString = creerMultiplesObjets360sc(testNomDeObjetBase, testSystemType, testTypeObjet);
-  Logger.log("Résultat de creerMultiplesObjets360sc (SUCCES - chaîne JSON): " + resultatString.substring(0, 1000));
+  Logger.log("Résultat de creerMultiplesObjets360sc (SUCCES - chaîne JSON): " + resultatString);
   try {
     var resultatObjet = JSON.parse(resultatString);
     Logger.log("Résultat de creerMultiplesObjets360sc (SUCCES - objet parsé): " + JSON.stringify(resultatObjet));
@@ -50,24 +50,15 @@ function maFonctionDeTestPourCreerMultiples_SUCCES() {
 }
 
 function maFonctionDeTestPourCreerMultiples_ERREUR() {
-  var testSystemTypeInvalide = "DEV_INVALIDE";
-  var testNomDeObjetBaseErreur = "MonProjetMultiErreur";
-  var testTypeObjetErreur = "OF";
-  Logger.log(`Appel de creerMultiplesObjets360sc (test ERREUR config) avec: typeSys=${testSystemTypeInvalide}, nomBase=${testNomDeObjetBaseErreur}, typeObj=${testTypeObjetErreur}`);
-  var resultatString = creerMultiplesObjets360sc(testNomDeObjetBaseErreur, testSystemTypeInvalide, testTypeObjetErreur);
-  Logger.log("Résultat de creerMultiplesObjets360sc (ERREUR config - chaîne JSON): " + resultatString.substring(0, 1000));
-  try {
-    var resultatObjet = JSON.parse(resultatString);
-    Logger.log("Résultat de creerMultiplesObjets360sc (ERREUR config - objet parsé): " + JSON.stringify(resultatObjet));
-  } catch (e) { Logger.log("Erreur parsing JSON pour creerMultiples_ERREUR_config: " + e.message); }
-
+  // Test d'un type d'objet invalide (ex: MOULE), devrait retourner une erreur de validation.
+  Logger.log("Test d'erreur : Appel de creerMultiplesObjets360sc avec le type invalide 'MOULE'");
+  var resultatErr = creerMultiplesObjets360sc("TestMultiErreurType", "DEV", "MOULE");
+  Logger.log("Résultat attendu (erreur de type) : " + resultatErr);
+  
+  // Test original pour nom manquant
   Logger.log(`Appel de creerMultiplesObjets360sc (test ERREUR - nomDeObjetBase manquant)`);
-  resultatString = creerMultiplesObjets360sc(null, "DEV", "OF");
-  Logger.log("Résultat de creerMultiplesObjets360sc (ERREUR nomBase manquant - chaîne JSON): " + resultatString.substring(0, 1000));
-  try {
-    var resultatObjetManquant = JSON.parse(resultatString);
-    Logger.log("Résultat de creerMultiplesObjets360sc (ERREUR nomBase manquant - objet parsé): " + JSON.stringify(resultatObjetManquant));
-  } catch (e) { Logger.log("Erreur parsing JSON pour creerMultiples_ERREUR_MANQUANT: " + e.message); }
+  var resultatString = creerMultiplesObjets360sc(null, "DEV", "OF");
+  Logger.log("Résultat de creerMultiplesObjets360sc (ERREUR nomBase manquant - chaîne JSON): " + resultatString);
 }
 
 // --- Fonctions de test par environnement et type d'objet ---
@@ -75,64 +66,46 @@ function maFonctionDeTestPourCreerMultiples_DEV_OF() {
   Logger.log("Exécution maFonctionDeTestPourCreerMultiples_DEV_OF");
   var resultat = creerMultiplesObjets360sc("TestDevOF", "DEV", "OF");
   Logger.log("Résultat DEV OF (JSON): " + resultat);
-  Logger.log("Résultat DEV OF (Parsed): " + JSON.stringify(JSON.parse(resultat)));
 }
 function maFonctionDeTestPourCreerMultiples_DEV_MOULE() {
-  Logger.log("Exécution maFonctionDeTestPourCreerMultiples_DEV_MOULE");
+  Logger.log("ERREUR ATTENDUE : Cette fonction de test est obsolète car 'creerMultiples...' est pour les OF seulement.");
+  Logger.log("Exécution maFonctionDeTestPourCreerMultiples_DEV_MOULE pour vérifier le mécanisme de garde...");
   var resultat = creerMultiplesObjets360sc("TestDevMoule", "DEV", "MOULE");
-  Logger.log("Résultat DEV MOULE (JSON): " + resultat);
-  Logger.log("Résultat DEV MOULE (Parsed): " + JSON.stringify(JSON.parse(resultat)));
+  Logger.log("Résultat DEV MOULE (JSON - devrait être une erreur): " + resultat);
 }
 function maFonctionDeTestPourCreerMultiples_TEST_OF() {
   Logger.log("Exécution maFonctionDeTestPourCreerMultiples_TEST_OF");
   var resultat = creerMultiplesObjets360sc("TestTestOF", "TEST", "OF");
   Logger.log("Résultat TEST OF (JSON): " + resultat);
-  Logger.log("Résultat TEST OF (Parsed): " + JSON.stringify(JSON.parse(resultat)));
 }
 function maFonctionDeTestPourCreerMultiples_TEST_MOULE() {
-  Logger.log("Exécution maFonctionDeTestPourCreerMultiples_TEST_MOULE");
+  Logger.log("ERREUR ATTENDUE : Cette fonction de test est obsolète car 'creerMultiples...' est pour les OF seulement.");
+  Logger.log("Exécution maFonctionDeTestPourCreerMultiples_TEST_MOULE pour vérifier le mécanisme de garde...");
   var resultat = creerMultiplesObjets360sc("TestTestMoule", "TEST", "MOULE");
-  Logger.log("Résultat TEST MOULE (JSON): " + resultat);
-  Logger.log("Résultat TEST MOULE (Parsed): " + JSON.stringify(JSON.parse(resultat)));
+  Logger.log("Résultat TEST MOULE (JSON - devrait être une erreur): " + resultat);
 }
 
 // --- Nouvelle fonction de test wrapper pour creerObjetUnique360sc ---
 function maFonctionDeTestPourCreerObjetUnique() {
-  var testNomDeObjetBase = "MonObjetUniqueFlexible";
+  var testNomDeObjetBase = "MonMouleFlexible";
   var testSystemType = "DEV"; // ou "TEST", "PROD"
-  var testTypeObjet = "OF";   // ou "MOULE"
-  var testAlphaId = "v0:OF_DALLE"; // Exemple d'alphaId spécifique, peut être différent de "v0:OF_PRINCIPAL"
+  var testTypeObjet = "MOULE";   // ou "OF"
+  var testAlphaId = "v0:MOULE_CORPS"; // Exemple d'alphaId spécifique pour un moule
   
   Logger.log(`Appel de creerObjetUnique360sc (test) avec: nomBase=${testNomDeObjetBase}, typeSys=${testSystemType}, typeObj=${testTypeObjet}, alphaId=${testAlphaId}`);
   var resultatString = creerObjetUnique360sc(testNomDeObjetBase, testSystemType, testTypeObjet, testAlphaId);
   Logger.log("Résultat de creerObjetUnique360sc (chaîne JSON): " + resultatString);
-  try {
-    var resultatObjet = JSON.parse(resultatString);
-    Logger.log("Résultat de creerObjetUnique360sc (objet parsé): " + JSON.stringify(resultatObjet));
-  } catch (e) {
-    Logger.log("Erreur parsing JSON pour creerObjetUnique360sc: " + e.message);
-  }
-
-  // Test avec alphaId principal pour vérifier la non-régression
-  var testAlphaIdPrincipal = "v0:OF_PRINCIPAL";
-  Logger.log(`Appel de creerObjetUnique360sc (test avec alphaId principal) avec: nomBase=${testNomDeObjetBase}-Principal, typeSys=${testSystemType}, typeObj=${testTypeObjet}, alphaId=${testAlphaIdPrincipal}`);
-  var resultatStringPrincipal = creerObjetUnique360sc(testNomDeObjetBase + "-Principal", testSystemType, testTypeObjet, testAlphaIdPrincipal);
-  Logger.log("Résultat de creerObjetUnique360sc (Principal - chaîne JSON): " + resultatStringPrincipal);
-  try {
-    var resultatObjetPrincipal = JSON.parse(resultatStringPrincipal);
-    Logger.log("Résultat de creerObjetUnique360sc (Principal - objet parsé): " + JSON.stringify(resultatObjetPrincipal));
-  } catch (e) {
-    Logger.log("Erreur parsing JSON pour creerObjetUnique360sc (Principal): " + e.message);
-  }
 }
 
 
 /**
- * Crée les 5 objets 360sc et retourne leurs URLs dans une structure JSON plate.
+ * [SPECIALISEE-OF] Crée la structure complète des 5 objets 360sc pour un Ordre de Fabrication (OF).
+ * Retourne leurs URLs dans une structure JSON plate.
+ * CETTE FONCTION EST EXCLUSIVEMENT POUR LES OBJETS DE TYPE 'OF'.
  *
- * @param {string} nomDeObjetBase Le nom de base pour les objets.
+ * @param {string} nomDeObjetBase Le nom de base pour les objets OF.
  * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
- * @param {string} typeObjet "OF" ou "MOULE" (ou autre clé de METADATA_AVATAR_TYPES).
+ * @param {string} typeObjet Doit être "OF". Si non fourni, "OF" est assumé. Toute autre valeur provoquera une erreur.
  * @return {string} Une chaîne JSON: { success: boolean, message: string, PAC_360scID?: string, ..., error?: string, details_...?: string }
  * @customfunction
  */
@@ -140,6 +113,7 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
   let finalOutput = { success: false, message: "" };
 
   try {
+    // ---- VALIDATION ET GARDES ----
     if (!nomDeObjetBase || String(nomDeObjetBase).trim() === "") {
       throw new Error("Le paramètre 'nomDeObjetBase' est requis et ne peut être vide.");
     }
@@ -151,17 +125,20 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
         throw new Error(`Valeur de 'typeSysteme' invalide: ${typeSysteme}. Doit être "DEV", "TEST", ou "PROD".`);
     }
 
-    const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "DEFAULT";
-    const metadataAvatarTypeId = METADATA_AVATAR_TYPES[typeObjetUpper] || METADATA_AVATAR_TYPES.DEFAULT;
-    if (!metadataAvatarTypeId) { // Double check si DEFAULT n'existe pas ou si typeObjetUpper est invalide sans fallback
-        throw new Error(`Type d'objet '${typeObjet}' non supporté ou 'DEFAULT' non configuré.`);
+    // Vérification stricte du type d'objet pour cette fonction spécialisée
+    const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "OF"; // Défaut à OF si non fourni
+    if (typeObjetUpper !== 'OF') {
+      throw new Error("Usage incorrect: La fonction 'creerMultiplesObjets360sc' est réservée exclusivement à la création d'objets de type 'OF'. Pour un 'MOULE' ou autre, veuillez utiliser la fonction 'creerObjetUnique360sc'.");
     }
-
-    Logger.log(`Début création multiple pour ${nomDeObjetBase}, système: ${systemTypeUpper}, type d'objet: ${typeObjetUpper} (ID: ${metadataAvatarTypeId})`);
+    // ---- FIN VALIDATION ----
+    
+    const metadataAvatarTypeId = METADATA_AVATAR_TYPES.OF; // On utilise directement le type OF
+    Logger.log(`Début création multiple pour OF '${nomDeObjetBase}', système: ${systemTypeUpper}`);
 
     const config = getConfiguration_(systemTypeUpper);
     const token = getAuthToken_(systemTypeUpper);
 
+    // La constante OBJECT_DEFINITIONS est correcte car spécifique aux OF
     for (const objDef of OBJECT_DEFINITIONS) {
       const objectNameForApi = `${objDef.alphaId}:${nomDeObjetBase}${objDef.nameSuffix}`;
       const objectDisplayName = `${nomDeObjetBase}${objDef.nameSuffix}`;
@@ -178,38 +155,37 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
         finalOutput.error = `Erreur pour ${objectDisplayName} (${objDef.key}): ${e.message}`;
         finalOutput.details_step = `creation_${objDef.key}`;
         finalOutput.details_originalError = e.message;
-        finalOutput.details_stack = e.stack ? e.stack.substring(0, 500) : 'N/A'; // Limiter taille stack
+        finalOutput.details_stack = e.stack ? e.stack.substring(0, 500) : 'N/A';
         Logger.log(finalOutput.error + ` (Stack: ${finalOutput.details_stack}...`);
         return JSON.stringify(finalOutput);
       }
     }
 
     finalOutput.success = true;
-    finalOutput.message = "Tous les objets ont été créés avec succès.";
+    finalOutput.message = "Tous les objets OF ont été créés avec succès.";
     Logger.log(finalOutput.message);
 
   } catch (error) {
     finalOutput.success = false;
-    finalOutput.message = "Une erreur de configuration, d'authentification ou de paramètre est survenue.";
+    finalOutput.message = "Une erreur de configuration, de validation ou d'authentification est survenue.";
     finalOutput.error = error.message;
     finalOutput.details_originalError = error.message;
-    finalOutput.details_stack = error.stack ? error.stack.substring(0, 500) : 'N/A'; // Limiter taille stack
+    finalOutput.details_stack = error.stack ? error.stack.substring(0, 500) : 'N/A';
     Logger.log(`Erreur globale dans creerMultiplesObjets360sc: ${finalOutput.error} (Stack: ${finalOutput.details_stack}...`);
   }
 
-  Logger.log("Retour final (string): " + JSON.stringify(finalOutput).substring(0, 500));
   return JSON.stringify(finalOutput);
 }
 
 
 /**
- * Crée un unique objet 360sc et retourne son URL mc.
+ * [GENERIQUE] Crée un unique objet 360sc et retourne son URL mc.
  * Le nom de l'objet API sera construit comme alphaIdSpecifique:nomDeObjetBase.
  *
  * @param {string} nomDeObjetBase Le nom de base pour l'objet.
  * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
- * @param {string} typeObjet "OF" ou "MOULE" (ou autre clé de METADATA_AVATAR_TYPES) pour déterminer le metadataAvatarTypeId.
- * @param {string} alphaIdSpecifique L'alphaId spécifique à utiliser pour cet objet unique (ex: "v0:OF_DALLE").
+ * @param {string} typeObjet "OF", "MOULE", etc. pour déterminer le metadataAvatarTypeId.
+ * @param {string} alphaIdSpecifique L'alphaId spécifique à utiliser pour cet objet unique (ex: "v0:MOULE_CORPS").
  * @return {string} Une chaîne JSON: { success: boolean, message: string, mcUrl?: string, avatarApiIdPath?: string, objectNameCreated?: string, error?: string, details_...?: string }
  * @customfunction
  */
@@ -237,14 +213,11 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, alphaIdSp
         throw new Error(`Type d'objet '${typeObjet}' non supporté ou 'DEFAULT' non configuré pour déterminer metadataAvatarTypeId.`);
     }
     
-    // Construction du nom pour l'API.
-    // Pour un objet unique avec alphaId spécifique, le nom API est alphaId:nomDeBase.
-    // Si un suffixe est nécessaire, l'appelant doit l'inclure dans nomDeObjetBase ou nous devrions ajouter un autre paramètre.
     const objectNameForApi = `${alphaIdSpecifique}:${nomDeObjetBase}`;
 
-    Logger.log(`Début création objet unique pour ${nomDeObjetBase}, système: ${systemTypeUpper}, type d'objet (meta): ${typeObjetUpper} (ID Meta: ${metadataAvatarTypeId}), alphaId: ${alphaIdSpecifique}, nom API: ${objectNameForApi}`);
+    Logger.log(`Début création objet unique pour ${nomDeObjetBase}, système: ${systemTypeUpper}, type (meta): ${typeObjetUpper}, alphaId: ${alphaIdSpecifique}, nom API: ${objectNameForApi}`);
 
-    const config = getConfiguration_(systemTypeUpper); // Utilisé indirectement par les fonctions API
+    const config = getConfiguration_(systemTypeUpper);
     const token = getAuthToken_(systemTypeUpper);
 
     const avatarIdPath = createAvatar_(token, systemTypeUpper, objectNameForApi, alphaIdSpecifique, metadataAvatarTypeId);
@@ -254,7 +227,7 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, alphaIdSp
     finalOutput.message = `Objet unique '${objectNameForApi}' créé avec succès.`;
     finalOutput.mcUrl = mcUrl;
     finalOutput.avatarApiIdPath = avatarIdPath;
-    finalOutput.objectNameCreated = objectNameForApi; // Ajout du nom effectivement créé
+    finalOutput.objectNameCreated = objectNameForApi;
     Logger.log(finalOutput.message + ` URL: ${mcUrl}`);
 
   } catch (error) {
@@ -266,7 +239,6 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, alphaIdSp
     Logger.log(`Erreur globale dans creerObjetUnique360sc: ${finalOutput.error} (Stack: ${finalOutput.details_stack}...`);
   }
 
-  Logger.log("Retour final creerObjetUnique360sc (string): " + JSON.stringify(finalOutput).substring(0, 500));
   return JSON.stringify(finalOutput);
 }
 
@@ -276,7 +248,7 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, alphaIdSp
 /**
  * Teste l'authentification.
  * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
- * @return {string} Chaîne JSON: { success: boolean, message: string, token?: string, error?: string, details_...?: string }
+ * @return {string} Chaîne JSON: { success: boolean, message: string, error?: string }
  * @customfunction
  */
 function testAuthentication(typeSysteme) {
@@ -291,15 +263,12 @@ function testAuthentication(typeSysteme) {
 
     finalOutput.success = true;
     finalOutput.message = `Authentification réussie pour ${systemTypeUpper}.`;
-    // Par sécurité, ne pas retourner le token dans un contexte AppSheet, sauf si explicitement debug.
-    // finalOutput.token = token; 
     Logger.log(`Token obtenu pour ${systemTypeUpper} (non inclus dans la réponse par défaut)`);
 
   } catch (e) {
     finalOutput.success = false;
     finalOutput.message = `Échec de l'authentification pour ${typeSysteme}.`;
     finalOutput.error = e.message;
-    finalOutput.details_originalError = e.message;
     Logger.log(`Erreur testAuthentication (${typeSysteme}): ${finalOutput.error}`);
   }
   return JSON.stringify(finalOutput);
@@ -311,7 +280,7 @@ function testAuthentication(typeSysteme) {
  * @param {string} nomObjetTestBase Le nom de base de l'objet.
  * @param {string} alphaIdTest L'alphaId à utiliser.
  * @param {string} metadataAvatarTypeIdTest L'ID du type de metadata avatar (ex: METADATA_AVATAR_TYPES.OF).
- * @return {string} Chaîne JSON: { success: boolean, message: string, avatarApiIdPath?: string, mcUrl?: string, error?: string, details_...?: string }
+ * @return {string} Chaîne JSON: { success: boolean, message: string, avatarApiIdPath?: string, mcUrl?: string, error?: string }
  * @customfunction
  */
 function testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest, metadataAvatarTypeIdTest) {
@@ -338,7 +307,6 @@ function testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest, meta
     finalOutput.success = false;
     finalOutput.message = `Échec de la création de l'objet unique (${typeSysteme}).`;
     finalOutput.error = e.message;
-    finalOutput.details_originalError = e.message;
     Logger.log(`Erreur testCreateSingleObject (${typeSysteme}): ${finalOutput.error}`);
   }
   return JSON.stringify(finalOutput);
@@ -348,7 +316,7 @@ function testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest, meta
  * Teste la récupération de l'URL mc pour un avatar.
  * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
  * @param {string} avatarApiIdPath L'@id de l'avatar.
- * @return {string} Chaîne JSON: { success: boolean, message: string, mcUrl?: string, error?: string, details_...?: string }
+ * @return {string} Chaîne JSON: { success: boolean, message: string, mcUrl?: string, error?: string }
  * @customfunction
  */
 function testGetMcUrlForAvatar(typeSysteme, avatarApiIdPath) {
@@ -372,7 +340,6 @@ function testGetMcUrlForAvatar(typeSysteme, avatarApiIdPath) {
     finalOutput.success = false;
     finalOutput.message = `Échec de la récupération de l'URL mc (${typeSysteme}).`;
     finalOutput.error = e.message;
-    finalOutput.details_originalError = e.message;
     Logger.log(`Erreur testGetMcUrlForAvatar (${typeSysteme}): ${finalOutput.error}`);
   }
   return JSON.stringify(finalOutput);
