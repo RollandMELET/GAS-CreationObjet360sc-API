@@ -1,8 +1,8 @@
 // FILENAME: apiHandler.gs
-// Version: 1.2.1
-// Date: 2025-06-01 19:00
+// Version: 1.3.0 
+// Date: 2025-06-07 10:35 // Modifié pour la date actuelle
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: createAvatar_ ne passera generateMCFinger que s'il est défini et non-nul/vide dans la config.
+// Description: Ajout de la fonction createUser_ pour la création d'utilisateurs.
 /**
  * @fileoverview Handles interactions with the 360sc API.
  */
@@ -74,7 +74,7 @@ function getAuthToken_(typeSysteme) {
  * @private
  */
 function createAvatar_(accessToken, typeSysteme, objectNameForApi, alphaId, metadataAvatarTypeId) {
-  const config = getConfiguration_(typeSysteme); // Récupère toute la config, y compris GENERATE_MC_FINGER
+  const config = getConfiguration_(typeSysteme); 
   const avatarsUrl = config.API_BASE_URL + config.AVATARS_ENDPOINT;
 
   if (!metadataAvatarTypeId) {
@@ -85,21 +85,15 @@ function createAvatar_(accessToken, typeSysteme, objectNameForApi, alphaId, meta
   const payload = {
     name: objectNameForApi,
     alphaId: alphaId,
-    // generateMCFinger sera ajouté conditionnellement ci-dessous
     generateMCQuantity: config.GENERATE_MC_QUANTITY,
     company: config.COMPANY_ID,
     metadataAvatarType: metadataAvatarTypeId
   };
 
-  // N'ajoute generateMCFinger au payload que s'il est défini (non null, non undefined) et non une chaîne vide dans la config
   if (config.GENERATE_MC_FINGER && String(config.GENERATE_MC_FINGER).trim() !== "") {
     payload.generateMCFinger = config.GENERATE_MC_FINGER;
   } else {
     Logger.log(`Information: generateMCFinger n'est pas configuré, est null ou est vide pour l'environnement ${typeSysteme}. Il ne sera pas inclus dans le payload de création d'avatar.`);
-    // Si l'API exigeait que la clé soit présente mais avec la valeur null (par exemple, si `type: ["string", "null"]` pour ce champ le permettait explicitement):
-    // payload.generateMCFinger = null;
-    // Cependant, il est souvent plus sûr de ne pas envoyer la clé du tout si la valeur est optionnelle et "nulle".
-    // Ce comportement devra être validé par rapport aux exigences de l'API 360SmartConnect.
   }
 
   const deduplicationId = Utilities.getUuid();
@@ -178,5 +172,76 @@ function getMcUrlForAvatar_(accessToken, typeSysteme, avatarApiIdPath) {
   } else {
     Logger.log(`Erreur récupération mcUrl (${typeSysteme}). Code: ${responseCode}. Réponse: ${responseBody}`);
     throw new Error(`Échec de récupération mcUrl pour ${avatarApiIdPath}. Code: ${responseCode}. Message: ${responseBody}`);
+  }
+}
+
+/**
+ * Creates a "User" object in the 360sc platform.
+ * @param {string} accessToken The API access token.
+ * @param {string} typeSysteme "DEV", "TEST", or "PROD".
+ * @param {object} userData An object containing user details. Expected properties: username, email, firstName, lastName. Optional: tags (array).
+ * @return {object} The JSON response from the API, typically the created user object.
+ * @throws {Error} If user creation fails or API returns an error.
+ * @private
+ */
+function createUser_(accessToken, typeSysteme, userData) {
+  const config = getConfiguration_(typeSysteme);
+  const usersUrl = config.API_BASE_URL + config.USERS_ENDPOINT;
+
+  // Validate required userData fields
+  if (!userData.username || !userData.email || !userData.firstName || !userData.lastName) {
+    const errorMessage = "ERREUR: Les champs userData 'username', 'email', 'firstName', et 'lastName' sont requis pour createUser_.";
+    Logger.log(errorMessage + ` Données reçues: ${JSON.stringify(userData)}`);
+    throw new Error(errorMessage);
+  }
+
+  const payload = {
+    company: config.COMPANY_ID, // COMPANY_ID est spécifique à l'environnement via getConfiguration_
+    username: userData.username,
+    email: userData.email,
+    firstName: userData.firstName,
+    lastName: userData.lastName,
+    tags: userData.tags || [] // Default to empty array if tags are not provided
+  };
+
+  // Note: La déduplication n'est généralement pas utilisée pour la création d'utilisateur,
+  // mais si l'API le supporte et que c'est souhaité, un 'x-deduplication-id' pourrait être ajouté.
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    headers: {
+      'Authorization': 'Bearer ' + accessToken
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  Logger.log(`Création de l'utilisateur (${typeSysteme}): ${userData.username} sur ${usersUrl}`);
+  Logger.log(`Payload création utilisateur: ${JSON.stringify(payload)}`);
+  const response = UrlFetchApp.fetch(usersUrl, options);
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+
+  if (responseCode === 201) { // 201 Created
+    const jsonResponse = JSON.parse(responseBody);
+    Logger.log(`Utilisateur (${typeSysteme}) '${userData.username}' créé avec succès. Réponse: ${responseBody}`);
+    return jsonResponse; // Retourne l'objet utilisateur créé (qui devrait inclure son @id)
+  } else {
+    Logger.log(`Erreur création utilisateur (${typeSysteme}) '${userData.username}'. Code: ${responseCode}. Réponse: ${responseBody}`);
+    // Tenter de parser le message d'erreur de l'API s'il est en JSON
+    let apiErrorMessage = responseBody;
+    try {
+        const errorResponseJson = JSON.parse(responseBody);
+        if (errorResponseJson.detail) {
+            apiErrorMessage = errorResponseJson.detail;
+        } else if (errorResponseJson.message) {
+            apiErrorMessage = errorResponseJson.message;
+        } else if (errorResponseJson["hydra:description"]) {
+            apiErrorMessage = errorResponseJson["hydra:description"];
+        }
+    } catch (e) {
+        // La réponse n'est pas du JSON ou a une structure inattendue, utiliser le corps brut.
+    }
+    throw new Error(`Échec de création utilisateur pour ${userData.username}. Code: ${responseCode}. Message: ${apiErrorMessage}`);
   }
 }
