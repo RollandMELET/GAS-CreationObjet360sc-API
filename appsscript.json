@@ -1,7 +1,19 @@
+// FILENAME: appsscript.json
+// Version: 1.1.0
+// Date: 2025-06-08 10:00
+// Author: Rolland MELET
+// Description: Added users.gs to the file order for the new user management module.
 {
   "timeZone": "Europe/Paris",
-  "dependencies": {
-  },
+  "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8"
+  "runtimeVersion": "V8",
+  "fileOrder": [
+    "config.gs",
+    "utils.gs",
+    "apiHandler.gs",
+    "users.gs",
+    "Code.gs",
+    "tests.gs"
+  ]
 }
