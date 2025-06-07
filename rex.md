@@ -184,5 +184,51 @@
     3.  **Privilégier les solutions dynamiques et non répétitives (DRY) :** `arguments.callee.name` est un exemple parfait de code qui s'auto-documente et prévient les erreurs de maintenance.
 
 ---
+## REX Item 7: Erreur API 405 (Method Not Allowed) lors de la récupération d'un utilisateur
+
+*   **Problème:**
+    Échec systématique de la récupération des données d'un utilisateur unique via un appel `GET` à l'endpoint `/api/v2/users/{id}`.
+
+*   **Description:**
+    La stratégie initiale pour mettre à jour un utilisateur (activation/désactivation) était de suivre un schéma classique "GET -> Modify -> PUT". Cependant, l'appel `GET` à l'API via la fonction `getUser_` échouait avec un code d'erreur `HTTP 405 Method Not Allowed`. Le message d'erreur de l'API indiquait explicitement que seule la méthode `PUT` était autorisée (`Allow: PUT`).
+
+*   **Impact:**
+    La stratégie de mise à jour initialement conçue était invalide et bloquait complètement l'implémentation des fonctionnalités d'activation et de désactivation.
+
+*   **Solution Appliquée:**
+    1.  Abandon complet de la stratégie "GET -> Modify -> PUT".
+    2.  Suppression de la fonction `getUser_` de `apiHandler.gs` car elle est inutilisable.
+    3.  Modification des fonctions `activerUtilisateur360sc` et `desactiverUtilisateur360sc` dans `Code.gs`. Elles exigent maintenant que l'objet utilisateur complet (tel que retourné par la fonction de création `creerUtilisateur360sc`) soit fourni en paramètre.
+    4.  Ces fonctions modifient ensuite cet objet en mémoire avant de l'envoyer directement via un `PUT`.
+
+*   **Leçons Apprises:**
+    1.  **Toujours se fier au contrat de l'API :** Même si "GET -> PUT" est une convention, chaque API est unique. Il est impératif de valider les méthodes HTTP autorisées pour chaque endpoint.
+    2.  **Lire attentivement les messages d'erreur de l'API :** L'erreur 405 et son en-tête `Allow: PUT` contenaient toutes les informations nécessaires pour résoudre le problème.
+    3.  **L'agilité dans le développement est clé :** Il faut être prêt à abandonner rapidement une approche lorsque les preuves montrent qu'elle est incorrecte.
+
+---
+
+## REX Item 8: Amélioration de la lisibilité des logs et organisation du projet
+
+*   **Problème:**
+    1. Manque de clarté dans les journaux lors du lancement de plusieurs tests. 2. Le fichier `Code.gs` dépassait les contraintes de taille et mélangeait code de production et de test.
+
+*   **Description:**
+    Sans marqueurs clairs, les logs de test étaient difficiles à attribuer à une fonction spécifique. De plus, la taille croissante de `Code.gs` rendait la navigation difficile et violait les bonnes pratiques de gestion de la taille des fichiers.
+
+*   **Impact:**
+    Perte de temps en débogage, maintenabilité réduite, non-respect des contraintes du projet.
+
+*   **Solution Appliquée:**
+    1.  **Logging :** Ajout systématique de la ligne `Logger.log("Lancement de la fonction de test : " + arguments.callee.name);` au début de chaque fonction de test pour une identification immédiate dans les logs.
+    2.  **Refactoring :** Scission du code en deux fichiers : `Code.gs` pour les fonctions de production et `tests.gs` pour toutes les fonctions de test.
+    3.  **Suite de tests :** Création d'une fonction maîtresse `testSuiteComplete` dans `tests.gs` pour exécuter tous les scénarios de test clés en une seule fois.
+
+*   **Leçons Apprises:**
+    1.  **L'Observabilité des Tests est une fonctionnalité :** Des logs clairs ne sont pas un luxe.
+    2.  **Séparation des préoccupations (SoC) :** Séparer le code de production du code de test est une pratique fondamentale qui améliore la clarté, la sécurité et la maintenabilité.
+    3.  **L'automatisation des tests est un gain de temps :** Une suite de tests complète permet une validation rapide et fiable du projet après chaque modification (tests de régression).
+
+---
 Ce rapport peut être complété au fur et à mesure que nous avançons dans le projet et que nous rencontrons d'autres points d'apprentissage.
 
