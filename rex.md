@@ -137,5 +137,52 @@
     4.  **Débogage itératif :** Le processus d'identification (erreur 401 -> identifiants corrigés -> erreur 404 -> URL corrigée) illustre l'importance de résoudre les problèmes un par un et d'analyser attentivement les messages d'erreur de l'API.
 
 ---
+## REX Item 6: Erreur API 405 (Method Not Allowed) lors de la récupération d'un utilisateur
+
+*   **Problème:**
+    Échec systématique de la récupération des données d'un utilisateur unique via un appel `GET` à l'endpoint `/api/v2/users/{id}`.
+
+*   **Description:**
+    La stratégie initiale pour mettre à jour un utilisateur (activation/désactivation) était de suivre un schéma classique "GET -> Modify -> PUT". Cependant, l'appel `GET` à l'API via la fonction `getUser_` échouait avec un code d'erreur `HTTP 405 Method Not Allowed`. Le message d'erreur de l'API indiquait explicitement que seule la méthode `PUT` était autorisée (`Allow: PUT`).
+
+*   **Impact:**
+    La stratégie de mise à jour initialement conçue était invalide et bloquait complètement l'implémentation des fonctionnalités d'activation et de désactivation.
+
+*   **Solution Appliquée:**
+    1.  Abandon complet de la stratégie "GET -> Modify -> PUT".
+    2.  Suppression de la fonction `getUser_` de `apiHandler.gs` car elle est inutilisable.
+    3.  Modification des fonctions `activerUtilisateur360sc` et `desactiverUtilisateur360sc` dans `Code.gs` pour qu'elles ne dépendent plus de la récupération préalable des données.
+    4.  Les nouvelles signatures de ces fonctions exigent maintenant que l'objet utilisateur complet (tel que retourné par la fonction de création `creerUtilisateur360sc`) soit fourni en paramètre.
+    5.  Ces fonctions modifient ensuite cet objet en mémoire avant de l'envoyer directement via un `PUT`.
+
+*   **Leçons Apprises:**
+    1.  **Toujours se fier au contrat de l'API, pas aux conventions générales :** Même si "GET -> PUT" est une pratique courante, chaque API est unique. Il est impératif de valider les méthodes HTTP autorisées pour chaque endpoint.
+    2.  **Lire attentivement les messages d'erreur de l'API :** L'erreur 405 et son en-tête `Allow: PUT` contenaient toutes les informations nécessaires pour diagnostiquer et résoudre le problème. C'est une source d'information primaire.
+    3.  **L'agilité dans le développement est clé :** Il faut être prêt à abandonner rapidement une approche ou une hypothèse de conception lorsque les preuves montrent qu'elle est incorrecte.
+
+---
+
+## REX Item 7: Amélioration de la lisibilité des logs de test
+
+*   **Problème:**
+    Manque de clarté dans les journaux d'exécution lors du lancement successif de plusieurs fonctions de test.
+
+*   **Description:**
+    Sans un marqueur de début clair, les logs de différentes exécutions de test se mélangent, rendant difficile l'identification de la fonction source d'un log spécifique. Cela ralentit l'analyse et le débogage.
+
+*   **Impact:**
+    Perte de temps, risque de mauvaise interprétation des résultats.
+
+*   **Solution Appliquée:**
+    1.  Adoption d'une convention de logging pour toutes les fonctions de test.
+    2.  Ajout systématique de la ligne `Logger.log("Lancement de la fonction de test : " + arguments.callee.name);` au tout début de chaque fonction de test (`maFonctionDeTestPour...`).
+    3.  L'utilisation de `arguments.callee.name` permet de récupérer dynamiquement le nom de la fonction, rendant la solution robuste et facile à maintenir (pas de mise à jour manuelle du nom en cas de copier-coller).
+
+*   **Leçons Apprises:**
+    1.  **L'Observabilité des Tests est une fonctionnalité :** Des logs clairs ne sont pas un luxe, mais une nécessité pour un développement efficace.
+    2.  **Standardiser les pratiques de logging :** Des conventions simples améliorent considérablement la productivité.
+    3.  **Privilégier les solutions dynamiques et non répétitives (DRY) :** `arguments.callee.name` est un exemple parfait de code qui s'auto-documente et prévient les erreurs de maintenance.
+
+---
 Ce rapport peut être complété au fur et à mesure que nous avançons dans le projet et que nous rencontrons d'autres points d'apprentissage.
 
