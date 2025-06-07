@@ -1,8 +1,8 @@
 // FILENAME: apiHandler.gs
-// Version: 1.3.0 
-// Date: 2025-06-07 10:35 // Modifié pour la date actuelle
+// Version: 1.3.2
+// Date: 2025-06-07 11:30 // Modifié pour la date actuelle
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout de la fonction createUser_ pour la création d'utilisateurs.
+// Description: Ajustement de l'URL pour createUser_ en TEST et PROD pour utiliser api.360sc.yt.
 /**
  * @fileoverview Handles interactions with the 360sc API.
  */
@@ -27,7 +27,7 @@ function getAuthToken_(typeSysteme) {
     throw new Error(errorMessage);
   }
 
-  const config = getConfiguration_(systemTypeUpper); // Valide aussi typeSysteme
+  const config = getConfiguration_(systemTypeUpper); 
   const authUrl = config.API_BASE_URL + config.AUTH_ENDPOINT;
 
   const payload = {
@@ -186,9 +186,26 @@ function getMcUrlForAvatar_(accessToken, typeSysteme, avatarApiIdPath) {
  */
 function createUser_(accessToken, typeSysteme, userData) {
   const config = getConfiguration_(typeSysteme);
-  const usersUrl = config.API_BASE_URL + config.USERS_ENDPOINT;
+  let usersUrl;
+  const systemTypeUpper = typeSysteme.toUpperCase();
 
-  // Validate required userData fields
+  // Pour TEST et PROD, si la API_BASE_URL configurée (pour /auth, /avatars) est "https://apiv2.360sc.yt",
+  // alors forcer l'utilisation de "https://api.360sc.yt" pour l'endpoint des utilisateurs.
+  if ((systemTypeUpper === "TEST" || systemTypeUpper === "PROD") && config.API_BASE_URL === "https://apiv2.360sc.yt") {
+    usersUrl = "https://api.360sc.yt" + config.USERS_ENDPOINT; 
+    Logger.log(`Information: Utilisation d'une URL de base spécifique ("https://api.360sc.yt") pour la création d'utilisateurs en ${systemTypeUpper}.`);
+  } else if (systemTypeUpper === "DEV" && config.API_BASE_URL === "https://apiv2preprod.360sc.yt") {
+    // Si DEV suit un schéma différent pour l'URL des utilisateurs, ajoutez la logique ici.
+    // Par exemple, si DEV utilisait "https://api-preprod.360sc.yt" + config.USERS_ENDPOINT
+    // Pour l'instant, on assume que DEV utilise sa config.API_BASE_URL standard pour les utilisateurs.
+    usersUrl = config.API_BASE_URL + config.USERS_ENDPOINT; 
+    Logger.log(`Information: Utilisation de la API_BASE_URL standard ("${config.API_BASE_URL}") pour la création d'utilisateurs en DEV.`);
+  } else {
+    // Cas par défaut ou si la API_BASE_URL est déjà "https://api.360sc.yt" pour TEST/PROD
+    usersUrl = config.API_BASE_URL + config.USERS_ENDPOINT;
+     Logger.log(`Information: Utilisation de la API_BASE_URL standard ("${config.API_BASE_URL}") pour la création d'utilisateurs en ${systemTypeUpper}.`);
+  }
+
   if (!userData.username || !userData.email || !userData.firstName || !userData.lastName) {
     const errorMessage = "ERREUR: Les champs userData 'username', 'email', 'firstName', et 'lastName' sont requis pour createUser_.";
     Logger.log(errorMessage + ` Données reçues: ${JSON.stringify(userData)}`);
@@ -196,16 +213,14 @@ function createUser_(accessToken, typeSysteme, userData) {
   }
 
   const payload = {
-    company: config.COMPANY_ID, // COMPANY_ID est spécifique à l'environnement via getConfiguration_
+    company: config.COMPANY_ID, 
     username: userData.username,
     email: userData.email,
     firstName: userData.firstName,
     lastName: userData.lastName,
-    tags: userData.tags || [] // Default to empty array if tags are not provided
+    tags: userData.tags || [] 
   };
 
-  // Note: La déduplication n'est généralement pas utilisée pour la création d'utilisateur,
-  // mais si l'API le supporte et que c'est souhaité, un 'x-deduplication-id' pourrait être ajouté.
   const options = {
     method: 'post',
     contentType: 'application/json',
@@ -222,13 +237,12 @@ function createUser_(accessToken, typeSysteme, userData) {
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
 
-  if (responseCode === 201) { // 201 Created
+  if (responseCode === 201) { 
     const jsonResponse = JSON.parse(responseBody);
     Logger.log(`Utilisateur (${typeSysteme}) '${userData.username}' créé avec succès. Réponse: ${responseBody}`);
-    return jsonResponse; // Retourne l'objet utilisateur créé (qui devrait inclure son @id)
+    return jsonResponse; 
   } else {
     Logger.log(`Erreur création utilisateur (${typeSysteme}) '${userData.username}'. Code: ${responseCode}. Réponse: ${responseBody}`);
-    // Tenter de parser le message d'erreur de l'API s'il est en JSON
     let apiErrorMessage = responseBody;
     try {
         const errorResponseJson = JSON.parse(responseBody);
