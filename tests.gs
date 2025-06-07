@@ -1,8 +1,8 @@
 // FILENAME: tests.gs
-// Version: 1.0.0
-// Date: 2025-06-07 14:00
+// Version: 1.1.0
+// Date: 2025-06-07 14:15
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Suite de tests pour le projet GAS-CreationObjet360sc-API.
+// Description: Ajout de la fonction testSuiteComplete pour exécuter les scénarios de test clés.
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
  * du projet, séparées du code de production pour une meilleure organisation.
@@ -312,4 +312,40 @@ function testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest, meta
     finalOutput.error = e.message;
   }
   return JSON.stringify(finalOutput);
+}
+
+
+// --- NOUVELLE FONCTION DE SUITE DE TESTS ---
+/**
+ * [SUITE DE TESTS] Exécute une série de tests clés pour valider l'ensemble des fonctionnalités du projet.
+ * Cette fonction sert de point d'entrée unique pour une validation complète.
+ * Note : les tests sont exécutés sur les environnements DEV ou TEST comme spécifié dans chaque fonction de test.
+ */
+function testSuiteComplete() {
+    Logger.log("======================================================");
+    Logger.log("Lancement de la SUITE DE TESTS COMPLÈTE");
+    Logger.log("======================================================");
+
+    const testsToRun = [
+      { name: "Scénario 1: Création d'une structure OF complète (sur DEV)", func: maFonctionDeTestPourCreerMultiples_SUCCES },
+      { name: "Scénario 2: Création d'un Avatar unique (Moule) (sur DEV)", func: maFonctionDeTestPourCreerObjetUnique },
+      { name: "Scénario 3: Cycle de vie complet d'un utilisateur (Créer -> Activer -> Désactiver) (sur TEST)", func: maFonctionDeTestPourDesactiverUtilisateur }
+    ];
+
+    testsToRun.forEach((test, index) => {
+        Logger.log(`\n--- DÉBUT TEST ${index + 1}/${testsToRun.length}: ${test.name} ---\n`);
+        try {
+            test.func();
+            Logger.log(`\n--- SUCCÈS TEST ${index + 1}: ${test.name} ---\n`);
+        } catch (e) {
+            Logger.log(`\n--- ERREUR CRITIQUE TEST ${index + 1}: ${test.name} ---`);
+            Logger.log("ERREUR: " + e.toString());
+            Logger.log("STACK: " + (e.stack || 'N/A'));
+            Logger.log(`--------------------------------------------------\n`);
+        }
+    });
+
+    Logger.log("======================================================");
+    Logger.log("SUITE DE TESTS COMPLÈTE TERMINÉE");
+    Logger.log("======================================================");
 }
