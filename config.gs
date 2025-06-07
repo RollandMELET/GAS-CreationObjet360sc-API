@@ -1,36 +1,52 @@
 // FILENAME: config.gs
-// Version: 1.5.0
-// Date: 2025-06-07 10:30 // Modifié pour la date actuelle
+// Version: 1.6.0
+// Date: 2025-06-07 15:00
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout de USERS_ENDPOINT pour la création d'utilisateurs.
+// Description: Ajout de ROLE_MAPPING pour la gestion des profils utilisateur.
 /**
  * @fileoverview Configuration settings for the 360sc API interaction script.
  */
+
+// --- MAPPING DES PROFILS UTILISATEUR ---
+// Fait le lien entre le profil choisi dans AppSheet et les rôles techniques de l'API.
+// IMPORTANT : Les listes de rôles techniques ci-dessous sont des hypothèses et DOIVENT être confirmées.
+const ROLE_MAPPING = {
+  // Profils à activer
+  "Admin":             ["ROLE_USER", "ROLE_ADMIN", "ROLE_DUHALDETEST"], 
+  "BOSS":              ["ROLE_USER", "ROLE_ADMIN", "ROLE_DUHALDETEST"], // Supposé identique à Admin
+  "Duhalde":           ["ROLE_USER", "ROLE_DUHALDETEST"], 
+  "Operateur":         ["ROLE_USER", "ROLE_OPERATEUR"],
+  "ControleurQualite": ["ROLE_USER", "ROLE_CONTROLEUR_QUALITE"], // Clé sans accent pour la sécurité
+
+  // Profils configurés comme non activables pour le moment
+  "Levageur":          null,
+  "Transporteur":      null,
+  "Client":            null
+};
+
 
 // Common settings for the API
 const COMMON_API_SETTINGS = {
   GENERATE_MC_QUANTITY: 1,
   AUTH_ENDPOINT: "/auth",
   AVATARS_ENDPOINT: "/api/avatars",
-  USERS_ENDPOINT: "/api/v2/users", // Nouvel endpoint pour les utilisateurs
+  USERS_ENDPOINT: "/api/v2/users", 
   MCS_SUFFIX_PATH: "/m_cs"
 };
 
 // --- MAPPING SPÉCIFIQUE POUR LES TYPES DE MOULES ---
-// Fait le lien entre le type de moule choisi dans AppSheet et l'alphaId technique envoyé à l'API.
 const ALPHA_ID_MAPPING = {
-  // NOTE: Ces alphaId sont des exemples et doivent être confirmés ou adaptés.
   MouleEnveloppe: "v0:MOULE_ENVELOPPE",
   MouleToit: "v0:MOULE_TOIT",
   MouleDalle: "v0:MOULE_DALLE",
-  Autre: "v0:MOULE_AUTRE" // Un alphaId générique pour les autres types
+  Autre: "v0:MOULE_AUTRE"
 };
 
 // Environment-specific configurations
 const ENV_CONFIG = {
   DEV: {
     API_BASE_URL: "https://apiv2preprod.360sc.yt",
-    COMPANY_ID: "/api/companies/683097e698355", // Cet ID sera utilisé pour l'utilisateur aussi
+    COMPANY_ID: "/api/companies/683097e698355",
     GENERATE_MC_FINGER: "/api/fingers/53ad7037-b20f-11ea-9cf3-00505692e487",
     METADATA_AVATAR_TYPES: {
       OF: "/api/metadata_avatar_types/68309961b20ee",
@@ -39,8 +55,8 @@ const ENV_CONFIG = {
     }
   },
   TEST: {
-    API_BASE_URL: "https://apiv2.360sc.yt", // URL de base pour les utilisateurs sur TEST
-    COMPANY_ID: "/api/companies/683fff330baf4", // Cet ID sera utilisé pour l'utilisateur aussi
+    API_BASE_URL: "https://apiv2.360sc.yt", 
+    COMPANY_ID: "/api/companies/683fff330baf4",
     GENERATE_MC_FINGER: "/api/fingers/6364149b51f85",
     METADATA_AVATAR_TYPES: {
       OF: "/api/metadata_avatar_types/6840002e05ac2",
@@ -49,8 +65,8 @@ const ENV_CONFIG = {
     }
   },
   PROD: {
-    API_BASE_URL: "https://apiv2.360sc.yt", // URL de base pour les utilisateurs sur PROD
-    COMPANY_ID: "VOTRE_ID_COMPANIE_PROD", // Cet ID sera utilisé pour l'utilisateur aussi
+    API_BASE_URL: "https://apiv2.360sc.yt",
+    COMPANY_ID: "VOTRE_ID_COMPANIE_PROD",
     GENERATE_MC_FINGER: "VOTRE_MC_FINGER_ID_POUR_PROD",
     METADATA_AVATAR_TYPES: {
       OF: "VOTRE_METADATA_ID_OF_POUR_PROD",
@@ -72,14 +88,6 @@ function getConfiguration_(typeSysteme) {
   if (!envSpecificConfig) {
     throw new Error(`Configuration non valide pour le type de système : ${typeSysteme}. Doit être "DEV", "TEST", ou "PROD".`);
   }
-  // Important: Assurez-vous que API_BASE_URL de ENV_CONFIG est utilisé, car il peut différer pour l'API /auth vs /api/v2/users
-  // L'URL de base pour les utilisateurs est https://api.360sc.yt (sans "v2preprod" pour DEV dans votre exemple,
-  // mais cela semble être une API unifiée pour /api/v2. Nous utiliserons API_BASE_URL tel que défini par environnement)
-  // Votre exemple pour users utilisait `https://api.360sc.yt/api/v2/users` pour l'env TEST (companyId: 683fff330baf4)
-  // qui correspond à `API_BASE_URL` de TEST. 
-  // Si DEV devait utiliser `https://api.360sc.yt` pour `/api/v2/users` et `https://apiv2preprod.360sc.yt` pour le reste,
-  // la logique de getConfiguration_ ou la structure de ENV_CONFIG devrait être adaptée.
-  // Pour l'instant, on suppose que `API_BASE_URL` est le même pour tous les endpoints d'un environnement donné.
   return { ...COMMON_API_SETTINGS, ...envSpecificConfig };
 }
 

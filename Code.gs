@@ -1,13 +1,11 @@
 // FILENAME: Code.gs
-// Version: 1.15.0
-// Date: 2025-06-07 14:00
+// Version: 1.16.0
+// Date: 2025-06-07 15:00
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Fichier principal contenant uniquement les fonctions de production. Les tests ont été déplacés dans tests.gs.
+// Description: Ajout du wrapper activerUtilisateurParProfil360sc utilisant un mapping de rôles.
 /**
  * @fileoverview Fichier principal contenant les fonctions exposées et appelables par des services externes comme AppSheet.
  */
-
-// --- Fonctions Principales (Exposées) ---
 
 function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
   let finalOutput = { success: false, message: "" };
@@ -205,6 +203,82 @@ function activerUtilisateur360scForAppSheet(typeSysteme, userId, username, email
     }
   } catch (e) {
     const criticalError = `ERREUR CRITIQUE dans le wrapper AppSheet: ${e.message}`;
+    Logger.log(criticalError);
+    return criticalError;
+  }
+}
+
+function desactiverUtilisateur360scForAppSheet(typeSysteme, userId, username, email, firstName, lastName) {
+  Logger.log(`Lancement de desactiverUtilisateur360scForAppSheet pour l'utilisateur ID ${userId}`);
+  try {
+    const config = getConfiguration_(typeSysteme);
+    let userData = {
+      id: userId,
+      username: username,
+      email: email,
+      firstName: firstName,
+      lastName: lastName,
+      company: config.COMPANY_ID,
+      tags: [],
+      groups: [],
+      profiles: [],
+      rolesv2: [],
+      customFields: { ticketing: [], projectIds: [], buildingLogbook: [], redirection_after_login: null }
+    };
+    const resultString = desactiverUtilisateur360sc(typeSysteme, userData);
+    const result = JSON.parse(resultString);
+    if (result.success) {
+      Logger.log(`Désactivation réussie pour l'ID ${userId} via le wrapper AppSheet.`);
+      return "SUCCES";
+    } else {
+      const errorMessage = `ERREUR: ${result.error || result.message || 'Erreur inconnue depuis desactiverUtilisateur360sc.'}`;
+      Logger.log(errorMessage);
+      return errorMessage;
+    }
+  } catch (e) {
+    const criticalError = `ERREUR CRITIQUE dans le wrapper AppSheet: ${e.message}`;
+    Logger.log(criticalError);
+    return criticalError;
+  }
+}
+
+function activerUtilisateurParProfil360sc(typeSysteme, userId, username, email, firstName, lastName, profil) {
+  Logger.log(`Lancement de activerUtilisateurParProfil360sc pour l'ID ${userId} avec le profil '${profil}'`);
+  try {
+    const roles = ROLE_MAPPING[profil];
+    if (!roles) {
+      if (ROLE_MAPPING.hasOwnProperty(profil)) {
+        throw new Error(`Le profil '${profil}' est configuré comme non activable.`);
+      } else {
+        throw new Error(`Profil inconnu : '${profil}'. Vérifiez la configuration ROLE_MAPPING.`);
+      }
+    }
+    const config = getConfiguration_(typeSysteme);
+    let userData = {
+      id: userId,
+      username: username,
+      email: email,
+      firstName: firstName,
+      lastName: lastName,
+      company: config.COMPANY_ID,
+      tags: [],
+      groups: [],
+      profiles: [],
+      rolesv2: [],
+      customFields: { ticketing: [], projectIds: [], buildingLogbook: [], redirection_after_login: null }
+    };
+    const resultString = activerUtilisateur360sc(typeSysteme, userData, roles);
+    const result = JSON.parse(resultString);
+    if (result.success) {
+      Logger.log(`Activation réussie pour l'ID ${userId} avec le profil '${profil}'.`);
+      return "SUCCES";
+    } else {
+      const errorMessage = `ERREUR: ${result.error || result.message || 'Erreur inconnue.'}`;
+      Logger.log(errorMessage);
+      return errorMessage;
+    }
+  } catch (e) {
+    const criticalError = `ERREUR CRITIQUE dans le wrapper par profil: ${e.message}`;
     Logger.log(criticalError);
     return criticalError;
   }
