@@ -1,15 +1,15 @@
 // FILENAME: Code.gs
-// Version: 1.9.0
-// Date: 2025-06-07 10:45 // Modifié pour la date actuelle
+// Version: 1.10.0
+// Date: 2025-06-07 12:00 // Modifié pour la date actuelle
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout de la fonctionnalité de création d'utilisateur (creerUtilisateur360sc) et de sa fonction de test.
+// Description: Ajout du wrapper creerUtilisateurEtRecupererId360sc pour retourner uniquement l'ID de l'utilisateur créé.
 /**
  * @fileoverview Main script functions callable from AppSheet and test wrappers.
  */
 
-// ... (fonctions de test existantes inchangées) ...
+// ... (fonctions de test existantes inchangées jusqu'à maFonctionDeTestPourCreerUtilisateur) ...
 function maFonctionDeTestPourAuth() {
-  var testSystemType = "TEST"; // Modifier en "DEV", "TEST", ou "PROD"
+  var testSystemType = "TEST"; 
   Logger.log("Appel de testAuthentication avec typeSysteme: " + testSystemType);
   var resultatString = testAuthentication(testSystemType);
   Logger.log("Résultat de testAuthentication (chaîne JSON): " + resultatString);
@@ -38,7 +38,7 @@ function maFonctionDeTestPourCreerObjet() {
 function maFonctionDeTestPourCreerMultiples_SUCCES() {
   var testSystemType = "DEV";
   var testNomDeObjetBase = "MonProjetMultiSucces";
-  var testTypeObjet = "OF"; // Seul type valide
+  var testTypeObjet = "OF"; 
   Logger.log(`Appel de creerMultiplesObjets360sc (test SUCCES) avec: typeSys=${testSystemType}, nomBase=${testNomDeObjetBase}, typeObj=${testTypeObjet}`);
   var resultatString = creerMultiplesObjets360sc(testNomDeObjetBase, testSystemType, testTypeObjet);
   Logger.log("Résultat de creerMultiplesObjets360sc (SUCCES - chaîne JSON): " + resultatString);
@@ -62,25 +62,9 @@ function maFonctionDeTestPourCreerObjetUnique() {
 
 function testAllEnvironments() {
   Logger.log("====== DÉBUT DE LA SUITE DE TESTS COMPLÈTE ======");
-  
-  try {
-    testEndToEnd_DEV();
-  } catch (e) {
-    Logger.log("ERREUR CRITIQUE PENDANT LE TEST DEV: " + e.toString() + "\nStack: " + e.stack);
-  }
-
-  try {
-    testEndToEnd_TEST();
-  } catch (e) {
-    Logger.log("ERREUR CRITIQUE PENDANT LE TEST TEST: " + e.toString() + "\nStack: " + e.stack);
-  }
-
-  try {
-    testEndToEnd_PROD();
-  } catch (e) {
-    Logger.log("ERREUR CRITIQUE PENDANT LE TEST PROD: " + e.toString() + "\nStack: " + e.stack);
-  }
-  
+  try { testEndToEnd_DEV(); } catch (e) { Logger.log("ERREUR CRITIQUE PENDANT LE TEST DEV: " + e.toString() + "\nStack: " + e.stack); }
+  try { testEndToEnd_TEST(); } catch (e) { Logger.log("ERREUR CRITIQUE PENDANT LE TEST TEST: " + e.toString() + "\nStack: " + e.stack); }
+  try { testEndToEnd_PROD(); } catch (e) { Logger.log("ERREUR CRITIQUE PENDANT LE TEST PROD: " + e.toString() + "\nStack: " + e.stack); }
   Logger.log("====== FIN DE LA SUITE DE TESTS COMPLÈTE ======");
 }
 
@@ -117,26 +101,17 @@ function testEndToEnd_PROD() {
 
 // --- Fonctions Principales (Exposées) ---
 
-/**
- * [SPECIALISEE-OF] Crée la structure complète des 5 objets 360sc pour un Ordre de Fabrication (OF).
- * @customfunction
- */
 function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
   let finalOutput = { success: false, message: "" };
   try {
     if (!nomDeObjetBase || String(nomDeObjetBase).trim() === "") { throw new Error("Le paramètre 'nomDeObjetBase' est requis."); }
     if (!typeSysteme || String(typeSysteme).trim() === "") { throw new Error("Le paramètre 'typeSysteme' est requis."); }
-    
     const systemTypeUpper = typeSysteme.toUpperCase();
     const config = getConfiguration_(systemTypeUpper);
     const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "OF";
-    if (typeObjetUpper !== 'OF') {
-      throw new Error("Usage incorrect: 'creerMultiplesObjets360sc' est réservé au type 'OF'. Utilisez 'creerObjetUnique360sc' pour les autres types.");
-    }
+    if (typeObjetUpper !== 'OF') { throw new Error("Usage incorrect: 'creerMultiplesObjets360sc' est réservé au type 'OF'."); }
     const metadataAvatarTypeId = config.METADATA_AVATAR_TYPES.OF;
-    if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) {
-      throw new Error(`Le 'METADATA_AVATAR_TYPES.OF' n'est pas configuré pour l'environnement ${systemTypeUpper}.`);
-    }
+    if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) { throw new Error(`Le 'METADATA_AVATAR_TYPES.OF' n'est pas configuré pour ${systemTypeUpper}.`); }
     Logger.log(`Début création multiple pour OF '${nomDeObjetBase}', système: ${systemTypeUpper}`);
     const token = getAuthToken_(systemTypeUpper);
     for (const objDef of OBJECT_DEFINITIONS) {
@@ -144,9 +119,7 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
       try {
         const avatarIdPath = createAvatar_(token, systemTypeUpper, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
         finalOutput[objDef.key] = getMcUrlForAvatar_(token, systemTypeUpper, avatarIdPath);
-      } catch (e) {
-        throw new Error(`Échec à l'étape '${objDef.key}': ${e.message}`);
-      }
+      } catch (e) { throw new Error(`Échec à l'étape '${objDef.key}': ${e.message}`); }
     }
     finalOutput.success = true;
     finalOutput.message = "Tous les objets OF ont été créés avec succès.";
@@ -160,58 +133,45 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
   return JSON.stringify(finalOutput);
 }
 
-/**
- * [GENERIQUE] Crée un unique objet 360sc et retourne son URL mc.
- * @customfunction
- */
 function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, typeMoule) {
   let finalOutput = { success: false, message: "" };
   try {
-    if (!nomDeObjetBase || String(nomDeObjetBase).trim() === "") { throw new Error("Le paramètre 'nomDeObjetBase' est requis."); }
-    if (!typeSysteme || String(typeSysteme).trim() === "") { throw new Error("Le paramètre 'typeSysteme' est requis."); }
-    if (!typeMoule || String(typeMoule).trim() === "") { throw new Error("Le paramètre 'typeMoule' est requis."); }
-
+    if (!nomDeObjetBase || String(nomDeObjetBase).trim() === "") { throw new Error("'nomDeObjetBase' requis."); }
+    if (!typeSysteme || String(typeSysteme).trim() === "") { throw new Error("'typeSysteme' requis."); }
+    if (!typeMoule || String(typeMoule).trim() === "") { throw new Error("'typeMoule' requis."); }
     const systemTypeUpper = typeSysteme.toUpperCase();
     const config = getConfiguration_(systemTypeUpper);
     const alphaIdSpecifique = ALPHA_ID_MAPPING[typeMoule];
-    if (!alphaIdSpecifique) {
-      throw new Error(`Type de moule inconnu : '${typeMoule}'. Valeurs possibles : ${Object.keys(ALPHA_ID_MAPPING).join(', ')}.`);
-    }
+    if (!alphaIdSpecifique) { throw new Error(`Type de moule inconnu : '${typeMoule}'.`); }
     const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "DEFAULT";
     const metadataAvatarTypeId = config.METADATA_AVATAR_TYPES[typeObjetUpper] || config.METADATA_AVATAR_TYPES.DEFAULT;
-    if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) {
-      throw new Error(`Type d'objet général '${typeObjetUpper}' non supporté ou non configuré pour l'environnement ${systemTypeUpper}. Vérifiez METADATA_AVATAR_TYPES dans config.gs.`);
-    }
+    if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) { throw new Error(`Type d'objet '${typeObjetUpper}' non supporté/configuré pour ${systemTypeUpper}.`);}
     const objectNameForApi = `${alphaIdSpecifique}:${nomDeObjetBase}`;
-    Logger.log(`Début création objet unique: ${objectNameForApi} (typeMoule: ${typeMoule}, alphaId: ${alphaIdSpecifique}) pour l'environnement ${systemTypeUpper}`);
+    Logger.log(`Début création objet unique: ${objectNameForApi} (typeMoule: ${typeMoule}) pour ${systemTypeUpper}`);
     const token = getAuthToken_(systemTypeUpper);
     const avatarIdPath = createAvatar_(token, systemTypeUpper, objectNameForApi, alphaIdSpecifique, metadataAvatarTypeId);
     finalOutput.success = true;
-    finalOutput.message = `Objet unique '${objectNameForApi}' créé avec succès.`;
+    finalOutput.message = `Objet unique '${objectNameForApi}' créé.`;
     finalOutput.mcUrl = getMcUrlForAvatar_(token, systemTypeUpper, avatarIdPath);
     finalOutput.avatarApiIdPath = avatarIdPath;
     finalOutput.objectNameCreated = objectNameForApi;
   } catch (error) {
     finalOutput.success = false;
-    finalOutput.message = "Une erreur est survenue lors de la création de l'objet unique.";
+    finalOutput.message = "Erreur création objet unique.";
     finalOutput.error = error.message;
     finalOutput.details_stack = error.stack ? error.stack.substring(0, 500) : 'N/A';
-    Logger.log(`Erreur globale dans creerObjetUnique360sc: ${finalOutput.error}. Input: nomDeObjetBase=${nomDeObjetBase}, typeSysteme=${typeSysteme}, typeObjet=${typeObjet}, typeMoule=${typeMoule}`);
+    Logger.log(`Erreur creerObjetUnique360sc: ${finalOutput.error}`);
   }
   return JSON.stringify(finalOutput);
 }
 
-/**
- * [APPSHEET-HELPER] Crée un objet unique 360sc (spécifiquement pour Moule) et retourne directement l'URL mc ou un message d'erreur.
- * @customfunction
- */
 function creerObjetUnique360scForAppSheet(nomDeObjetBase, typeSysteme, typeMoule) {
-  Logger.log(`Appel de creerObjetUnique360scForAppSheet avec nomDeObjetBase: ${nomDeObjetBase}, typeSysteme: ${typeSysteme}, typeMoule: ${typeMoule}`);
+  Logger.log(`Appel creerObjetUnique360scForAppSheet: nom=${nomDeObjetBase}, sys=${typeSysteme}, typeMoule=${typeMoule}`);
   const resultString = creerObjetUnique360sc(nomDeObjetBase, typeSysteme, "MOULE", typeMoule);
   try {
     const result = JSON.parse(resultString);
     if (result.success && result.mcUrl) {
-      Logger.log(`Succès pour AppSheet. mcUrl: ${result.mcUrl}`);
+      Logger.log(`Succès AppSheet. mcUrl: ${result.mcUrl}`);
       return result.mcUrl;
     } else {
       const errorMessage = `ERREUR: ${result.error || result.message || 'Erreur inconnue.'}`;
@@ -219,63 +179,73 @@ function creerObjetUnique360scForAppSheet(nomDeObjetBase, typeSysteme, typeMoule
       return errorMessage;
     }
   } catch (e) {
-    const criticalError = `ERREUR CRITIQUE PARSING: ${e.message}. Réponse brute: ${resultString}`;
+    const criticalError = `ERREUR CRITIQUE PARSING: ${e.message}. Réponse: ${resultString}`;
     Logger.log(criticalError);
     return criticalError;
   }
 }
 
-// --- NOUVELLE FONCTION PRINCIPALE POUR LA CRÉATION D'UTILISATEUR ---
+function creerUtilisateur360sc(typeSysteme, username, email, firstName, lastName, tags) {
+  let finalOutput = { success: false, message: "" };
+  try {
+    if (!typeSysteme || String(typeSysteme).trim() === "") { throw new Error("'typeSysteme' requis."); }
+    if (!username || String(username).trim() === "") { throw new Error("'username' requis."); }
+    if (!email || String(email).trim() === "") { throw new Error("'email' requis."); }
+    if (!firstName || String(firstName).trim() === "") { throw new Error("'firstName' requis."); }
+    if (!lastName || String(lastName).trim() === "") { throw new Error("'lastName' requis."); }
+    const systemTypeUpper = typeSysteme.toUpperCase();
+    getConfiguration_(systemTypeUpper); 
+    Logger.log(`Début création utilisateur '${username}', email '${email}', sys: ${systemTypeUpper}`);
+    const token = getAuthToken_(systemTypeUpper);
+    const userData = { username: username, email: email, firstName: firstName, lastName: lastName, tags: Array.isArray(tags) ? tags : [] };
+    const createdUser = createUser_(token, systemTypeUpper, userData);
+    finalOutput.success = true;
+    finalOutput.message = `Utilisateur '${username}' créé.`;
+    finalOutput.user = createdUser; 
+  } catch (error) {
+    finalOutput.success = false;
+    finalOutput.message = "Erreur création utilisateur.";
+    finalOutput.error = error.message; 
+    finalOutput.details_stack = error.stack ? error.stack.substring(0, 500) : 'N/A';
+    Logger.log(`Erreur creerUtilisateur360sc: ${finalOutput.error}`);
+  }
+  return JSON.stringify(finalOutput);
+}
+
+// --- NOUVEAU WRAPPER POUR CRÉATION UTILISATEUR RETOURNANT L'ID ---
 /**
- * Crée un utilisateur dans la plateforme 360sc.
+ * [APPSHEET-HELPER] Crée un utilisateur 360sc et retourne directement son @id ou un message d'erreur.
+ * Conçue pour une intégration simplifiée, notamment avec AppSheet.
  * @customfunction
  * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
  * @param {string} username Le nom d'utilisateur.
  * @param {string} email L'adresse e-mail de l'utilisateur.
  * @param {string} firstName Le prénom de l'utilisateur.
  * @param {string} lastName Le nom de famille de l'utilisateur.
- * @param {string[]} [tags] Un tableau optionnel de tags (chaînes de caractères).
- * @return {string} Une chaîne JSON contenant les détails de l'utilisateur créé ou un message d'erreur.
+ * @param {string[]} [tags] Un tableau optionnel de tags.
+ * @return {string} L'@id de l'utilisateur créé (ex: "/api/users/1234") en cas de succès, 
+ *                  ou un message préfixé par "ERREUR: " en cas d'échec.
  */
-function creerUtilisateur360sc(typeSysteme, username, email, firstName, lastName, tags) {
-  let finalOutput = { success: false, message: "" };
+function creerUtilisateurEtRecupererId360sc(typeSysteme, username, email, firstName, lastName, tags) {
+  Logger.log(`Appel de creerUtilisateurEtRecupererId360sc avec username: ${username}, email: ${email}, typeSysteme: ${typeSysteme}`);
+  
+  const resultString = creerUtilisateur360sc(typeSysteme, username, email, firstName, lastName, tags);
+  
   try {
-    if (!typeSysteme || String(typeSysteme).trim() === "") { throw new Error("Le paramètre 'typeSysteme' est requis."); }
-    if (!username || String(username).trim() === "") { throw new Error("Le paramètre 'username' est requis."); }
-    if (!email || String(email).trim() === "") { throw new Error("Le paramètre 'email' est requis."); }
-    if (!firstName || String(firstName).trim() === "") { throw new Error("Le paramètre 'firstName' est requis."); }
-    if (!lastName || String(lastName).trim() === "") { throw new Error("Le paramètre 'lastName' est requis."); }
-
-    const systemTypeUpper = typeSysteme.toUpperCase();
-    // Valide typeSysteme et récupère la config (y compris COMPANY_ID)
-    getConfiguration_(systemTypeUpper); 
-
-    Logger.log(`Début création utilisateur '${username}', email '${email}', système: ${systemTypeUpper}`);
-    const token = getAuthToken_(systemTypeUpper);
-
-    const userData = {
-      username: username,
-      email: email,
-      firstName: firstName,
-      lastName: lastName,
-      tags: Array.isArray(tags) ? tags : [] // S'assurer que tags est un tableau
-    };
-
-    const createdUser = createUser_(token, systemTypeUpper, userData);
-
-    finalOutput.success = true;
-    finalOutput.message = `Utilisateur '${username}' créé avec succès.`;
-    finalOutput.user = createdUser; // L'objet utilisateur retourné par l'API
-    
-  } catch (error) {
-    finalOutput.success = false;
-    finalOutput.message = "Une erreur est survenue lors de la création de l'utilisateur.";
-    finalOutput.error = error.message; // Message d'erreur de createUser_ ou autre
-    finalOutput.details_stack = error.stack ? error.stack.substring(0, 500) : 'N/A';
-    Logger.log(`Erreur globale dans creerUtilisateur360sc: ${finalOutput.error}`);
+    const result = JSON.parse(resultString);
+    if (result.success && result.user && result.user['@id']) {
+      Logger.log(`Succès pour creerUtilisateurEtRecupererId360sc. Utilisateur @id: ${result.user['@id']}`);
+      return result.user['@id'];
+    } else {
+      const errorMessage = `ERREUR: ${result.error || result.message || 'Erreur inconnue lors de la création utilisateur ou @id manquant.'}`;
+      Logger.log(errorMessage + ` Réponse brute: ${resultString}`);
+      return errorMessage;
+    }
+  } catch (e) {
+    const criticalError = `ERREUR CRITIQUE PARSING (creerUtilisateurEtRecupererId360sc): ${e.message}. Réponse brute: ${resultString}`;
+    Logger.log(criticalError);
+    return criticalError;
   }
-
-  return JSON.stringify(finalOutput);
 }
 
 
@@ -284,20 +254,18 @@ function maFonctionDeTestPourCreerObjetUniqueForAppSheet() {
   var testNomDeObjetBase = "MonMoulePourAppSheet";
   var testSystemType = "DEV"; 
   var testTypeMoule = "MouleEnveloppe"; 
-  Logger.log(`Test de creerObjetUnique360scForAppSheet: nomBase=${testNomDeObjetBase}, typeSys=${testSystemType}, typeMoule=${testTypeMoule}`);
+  Logger.log(`Test creerObjetUnique360scForAppSheet: nom=${testNomDeObjetBase}, sys=${testSystemType}, typeMoule=${testTypeMoule}`);
   var resultat = creerObjetUnique360scForAppSheet(testNomDeObjetBase, testSystemType, testTypeMoule);
-  Logger.log(`Résultat du test pour AppSheet: ${resultat}`);
+  Logger.log(`Résultat test AppSheet: ${resultat}`);
 
   var testTypeMouleInexistant = "TypeMouleQuiNexistePas";
-  Logger.log(`Test d'erreur de creerObjetUnique360scForAppSheet: nomBase=${testNomDeObjetBase}, typeSys=${testSystemType}, typeMoule=${testTypeMouleInexistant}`);
+  Logger.log(`Test erreur creerObjetUnique360scForAppSheet: nom=${testNomDeObjetBase}, sys=${testSystemType}, typeMoule=${testTypeMouleInexistant}`);
   var resultatErreur = creerObjetUnique360scForAppSheet(testNomDeObjetBase, testSystemType, testTypeMouleInexistant);
-  Logger.log(`Résultat du test d'erreur pour AppSheet: ${resultatErreur}`);
+  Logger.log(`Résultat test erreur AppSheet: ${resultatErreur}`);
 }
 
-// --- NOUVELLE FONCTION DE TEST POUR LA CRÉATION D'UTILISATEUR ---
 function maFonctionDeTestPourCreerUtilisateur() {
-  var testSystemType = "TEST"; // Ou "DEV", "PROD" - Assurez-vous que l'environnement est configuré et que les identifiants sont stockés.
-  // Utiliser des valeurs uniques pour username et email à chaque test pour éviter les conflits
+  var testSystemType = "TEST"; 
   var timestamp = new Date().getTime();
   var testUsername = "TestUser" + timestamp;
   var testEmail = "testuser" + timestamp + "@example.com";
@@ -305,33 +273,47 @@ function maFonctionDeTestPourCreerUtilisateur() {
   var testLastName = "Utilisateur" + timestamp;
   var testTags = ["testTag1", "apiCreated"];
 
-  Logger.log(`Appel de creerUtilisateur360sc (test) avec: typeSys=${testSystemType}, user=${testUsername}, email=${testEmail}`);
+  Logger.log(`Appel creerUtilisateur360sc (test) avec: sys=${testSystemType}, user=${testUsername}, email=${testEmail}`);
   var resultatString = creerUtilisateur360sc(testSystemType, testUsername, testEmail, testFirstName, testLastName, testTags);
-  Logger.log("Résultat de creerUtilisateur360sc (chaîne JSON): " + resultatString);
-
+  Logger.log("Résultat creerUtilisateur360sc (JSON): " + resultatString);
   try {
     var resultatObjet = JSON.parse(resultatString);
-    Logger.log("Résultat de creerUtilisateur360sc (objet parsé): " + JSON.stringify(resultatObjet, null, 2));
-    if (resultatObjet.success) {
-      Logger.log("ID de l'utilisateur créé: " + (resultatObjet.user ? resultatObjet.user['@id'] : "Non trouvé"));
-    }
-  } catch (e) {
-    Logger.log("Erreur parsing JSON pour creerUtilisateur360sc: " + e.message);
-  }
+    Logger.log("Résultat creerUtilisateur360sc (objet): " + JSON.stringify(resultatObjet, null, 2));
+    if (resultatObjet.success) { Logger.log("ID utilisateur créé: " + (resultatObjet.user ? resultatObjet.user['@id'] : "Non trouvé")); }
+  } catch (e) { Logger.log("Erreur parsing JSON creerUtilisateur360sc: " + e.message); }
 
-  // Optionnel : Test d'un cas d'erreur (ex: email manquant)
-  Logger.log(`Appel de creerUtilisateur360sc (test d'erreur - email manquant) avec: typeSys=${testSystemType}, user=${testUsername}_err`);
+  Logger.log(`Appel creerUtilisateur360sc (test erreur - email manquant) avec: sys=${testSystemType}, user=${testUsername}_err`);
   var resultatErreurString = creerUtilisateur360sc(testSystemType, testUsername + "_err", null, testFirstName, testLastName, testTags);
-  Logger.log("Résultat de creerUtilisateur360sc (erreur - chaîne JSON): " + resultatErreurString);
+  Logger.log("Résultat creerUtilisateur360sc (erreur JSON): " + resultatErreurString);
   try {
     var resultatErreurObjet = JSON.parse(resultatErreurString);
-    Logger.log("Résultat de creerUtilisateur360sc (erreur - objet parsé): " + JSON.stringify(resultatErreurObjet, null, 2));
-  } catch (e) {
-    Logger.log("Erreur parsing JSON pour creerUtilisateur360sc (erreur): " + e.message);
-  }
+    Logger.log("Résultat creerUtilisateur360sc (erreur objet): " + JSON.stringify(resultatErreurObjet, null, 2));
+  } catch (e) { Logger.log("Erreur parsing JSON creerUtilisateur360sc (erreur): " + e.message); }
 }
 
-// ... (fonctions testAuthentication et testCreateSingleObject inchangées) ...
+// --- NOUVELLE FONCTION DE TEST POUR LE WRAPPER UTILISATEUR ID ---
+function maFonctionDeTestPourCreerUtilisateurEtRecupererId() {
+  var testSystemType = "TEST"; // Assurez-vous que TEST est configuré et les identifiants stockés
+  var timestamp = new Date().getTime();
+  var testUsername = "TestUserIdWrap" + timestamp;
+  var testEmail = "testuseridwrap" + timestamp + "@example.com";
+  var testFirstName = "TestWrap";
+  var testLastName = "UtilisateurId" + timestamp;
+  var testTags = ["wrapperTest"];
+
+  Logger.log(`Test de creerUtilisateurEtRecupererId360sc: sys=${testSystemType}, user=${testUsername}, email=${testEmail}`);
+  var resultatId = creerUtilisateurEtRecupererId360sc(testSystemType, testUsername, testEmail, testFirstName, testLastName, testTags);
+  Logger.log(`Résultat du test pour creerUtilisateurEtRecupererId360sc (devrait être un @id ou ERREUR): ${resultatId}`);
+
+  // Test d'un cas d'erreur (ex: username déjà existant - difficile à simuler sans créer puis recréer immédiatement,
+  // ou email invalide, ou paramètre manquant géré par la fonction principale)
+  // Testons un email manquant, qui sera intercepté par creerUtilisateur360sc
+  Logger.log(`Test d'erreur pour creerUtilisateurEtRecupererId360sc (email manquant): user=${testUsername}_errId`);
+  var resultatErreurId = creerUtilisateurEtRecupererId360sc(testSystemType, testUsername + "_errId", null, testFirstName, testLastName, testTags);
+  Logger.log(`Résultat du test d'erreur pour creerUtilisateurEtRecupererId360sc (devrait être ERREUR): ${resultatErreurId}`);
+}
+
+
 function testAuthentication(typeSysteme) {
   let finalOutput = { success: false, message: "" };
   try {
