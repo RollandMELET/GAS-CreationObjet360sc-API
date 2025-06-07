@@ -86,5 +86,32 @@
     2.  **Valider Systématiquement les Hypothèses :** Ne jamais supposer qu'une configuration d'un environnement fonctionnera sur un autre. Utiliser des fonctions de test et des outils d'investigation (comme les fonctions de listing temporaires) est une étape de validation cruciale lors de l'ajout d'un nouvel environnement.
     3.  **Robustesse du Code :** La structure finale est plus robuste car elle force le développeur à trouver et à renseigner explicitement les valeurs pour chaque environnement, réduisant ainsi les risques d'erreurs lors du passage en production.
 
+---
+## REX Item 4: Simplification de l'intégration AppSheet pour la création d'objets uniques
+
+*   **Problème:**
+    Simplification de l'intégration AppSheet pour la création d'objets uniques.
+
+*   **Description:**
+    La fonction `creerObjetUnique360sc` retourne une chaîne JSON complexe contenant plusieurs informations (`success`, `message`, `mcUrl`, `avatarApiIdPath`, `objectNameCreated`, `error`, `details_stack`). Bien que complète, cette structure n'est pas directement utilisable par AppSheet qui préfère souvent une valeur simple (comme une URL ou un message d'erreur direct) à stocker dans une colonne. Un traitement supplémentaire côté AppSheet serait nécessaire pour parser le JSON.
+
+*   **Impact:**
+    Complexification de la configuration de l'automation AppSheet (nécessité de parser le JSON via des expressions AppSheet ou une fonction script supplémentaire côté AppSheet). Augmentation du risque d'erreurs dans la logique AppSheet. Moins bonne expérience utilisateur pour l'intégrateur AppSheet.
+
+*   **Solution Appliquée:**
+    1.  Création d'une nouvelle fonction wrapper `creerObjetUnique360scForAppSheet` dans `Code.gs`.
+    2.  Cette fonction prend des arguments simplifiés et adaptés à l'usage depuis AppSheet (par exemple, elle fixe `typeObjet` à "MOULE" en interne).
+    3.  Elle appelle la fonction `creerObjetUnique360sc` existante.
+    4.  Elle parse la réponse JSON de `creerObjetUnique360sc`.
+    5.  En cas de succès, elle retourne *directement* la valeur de `mcUrl`.
+    6.  En cas d'échec, elle retourne une *chaîne de caractères unique* préfixée par "ERREUR: " contenant le message d'erreur pertinent.
+    7.  Une fonction de test `maFonctionDeTestPourCreerObjetUniqueForAppSheet` a également été ajoutée pour valider ce wrapper.
+
+*   **Leçons Apprises:**
+    1.  **Adapter les interfaces pour les consommateurs :** Lors de la création d'API ou de fonctions destinées à être appelées par d'autres systèmes (comme AppSheet), il est crucial de considérer la facilité d'intégration du point de vue du consommateur. Fournir des wrappers ou des endpoints spécifiques qui retournent des données dans le format le plus simple et le plus directement utilisable par le système appelant améliore grandement l'expérience d'intégration et réduit les risques d'erreurs.
+    2.  **Principe de responsabilité unique (SRP) pour les fonctions exposées :** Bien que `creerObjetUnique360sc` soit une bonne fonction générique interne, le wrapper `creerObjetUnique360scForAppSheet` a une responsabilité plus ciblée : servir spécifiquement AppSheet pour la création de moules de la manière la plus simple possible pour AppSheet.
+    3.  **L'importance des tests unitaires/d'intégration pour les wrappers :** La création d'une fonction de test dédiée (`maFonctionDeTestPourCreerObjetUniqueForAppSheet`) pour le nouveau wrapper assure que cette couche d'abstraction fonctionne comme prévu avant de l'intégrer dans AppSheet.
+---
+
 Ce rapport peut être complété au fur et à mesure que nous avançons dans le projet et que nous rencontrons d'autres points d'apprentissage.
 
