@@ -112,6 +112,30 @@
     2.  **Principe de responsabilité unique (SRP) pour les fonctions exposées :** Bien que `creerObjetUnique360sc` soit une bonne fonction générique interne, le wrapper `creerObjetUnique360scForAppSheet` a une responsabilité plus ciblée : servir spécifiquement AppSheet pour la création de moules de la manière la plus simple possible pour AppSheet.
     3.  **L'importance des tests unitaires/d'intégration pour les wrappers :** La création d'une fonction de test dédiée (`maFonctionDeTestPourCreerObjetUniqueForAppSheet`) pour le nouveau wrapper assure que cette couche d'abstraction fonctionne comme prévu avant de l'intégrer dans AppSheet.
 ---
+## REX Item 5: Divergence des URLs de base de l'API au sein d'un même environnement pour différents services
 
+*   **Problème:**
+    Divergence des URLs de base de l'API au sein d'un même environnement pour différents services.
+
+*   **Description:**
+    Lors de l'implémentation de la création d'utilisateurs, il a été découvert que l'URL de base pour l'API des utilisateurs (`https://api.360sc.yt`) différait de l'URL de base utilisée pour d'autres services comme l'authentification et la création d'avatars (`https://apiv2.360sc.yt`) pour les environnements TEST et PROD. L'utilisation de la `API_BASE_URL` standard configurée pour TEST (initialement `https://apiv2.360sc.yt`) pour l'endpoint `/api/v2/users` résultait en une erreur HTTP 404 (Not Found).
+
+*   **Impact:**
+    Échec de la fonctionnalité de création d'utilisateurs car l'endpoint correct n'était pas atteint. Nécessité d'adapter la logique de construction des URLs API.
+
+*   **Solution Appliquée:**
+    1.  Confirmation par Rolland que l'URL correcte pour la création d'utilisateurs en TEST et PROD est `https://api.360sc.yt/api/v2/users`.
+    2.  Modification de la fonction `createUser_` dans `apiHandler.gs` pour introduire une logique conditionnelle :
+        *   Si `typeSysteme` est "TEST" ou "PROD" ET que la `config.API_BASE_URL` (utilisée pour `/auth`, `/avatars`) est `https://apiv2.360sc.yt`, alors l'URL pour la création d'utilisateur est forcée à `https://api.360sc.yt` + `config.USERS_ENDPOINT`.
+        *   Pour les autres cas (ex: DEV, ou si la `config.API_BASE_URL` était déjà `https://api.360sc.yt`), la construction standard de l'URL est utilisée.
+    3.  Cette modification a permis d'atteindre l'endpoint correct et de réussir la création d'utilisateurs.
+
+*   **Leçons Apprises:**
+    1.  **Ne pas présumer l'uniformité des URLs de base :** Même au sein d'un "même" environnement (ex: TEST), différents services ou modules d'une API peuvent être hébergés sous des sous-domaines ou des chemins de base légèrement différents. Il est crucial de valider chaque endpoint individuellement.
+    2.  **Importance de la documentation API précise :** Une documentation API claire indiquant les URLs de base spécifiques pour chaque groupe de fonctionnalités ou par environnement est essentielle.
+    3.  **Flexibilité de la configuration :** Bien qu'une `API_BASE_URL` unique par environnement soit idéale, le code doit être capable de s'adapter à des exceptions. La solution appliquée (logique conditionnelle dans `apiHandler.gs`) est un compromis. Une solution plus structurelle pourrait impliquer des configurations d'URL de base multiples par environnement dans `config.gs` (par exemple, `API_BASE_URL_AUTH_AVATARS` et `API_BASE_URL_USERS`).
+    4.  **Débogage itératif :** Le processus d'identification (erreur 401 -> identifiants corrigés -> erreur 404 -> URL corrigée) illustre l'importance de résoudre les problèmes un par un et d'analyser attentivement les messages d'erreur de l'API.
+
+---
 Ce rapport peut être complété au fur et à mesure que nous avançons dans le projet et que nous rencontrons d'autres points d'apprentissage.
 
