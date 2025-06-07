@@ -1,8 +1,8 @@
 // FILENAME: Code.gs
-// Version: 1.10.0
-// Date: 2025-06-07 12:00 // Modifié pour la date actuelle
+// Version: 1.10.1
+// Date: 2025-06-07 12:15 // Modifié pour la date actuelle
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout du wrapper creerUtilisateurEtRecupererId360sc pour retourner uniquement l'ID de l'utilisateur créé.
+// Description: Modifié creerUtilisateurEtRecupererId360sc pour retourner l'ID numérique de l'utilisateur.
 /**
  * @fileoverview Main script functions callable from AppSheet and test wrappers.
  */
@@ -212,9 +212,9 @@ function creerUtilisateur360sc(typeSysteme, username, email, firstName, lastName
   return JSON.stringify(finalOutput);
 }
 
-// --- NOUVEAU WRAPPER POUR CRÉATION UTILISATEUR RETOURNANT L'ID ---
+// --- WRAPPER MODIFIÉ POUR CRÉATION UTILISATEUR RETOURNANT L'ID NUMÉRIQUE ---
 /**
- * [APPSHEET-HELPER] Crée un utilisateur 360sc et retourne directement son @id ou un message d'erreur.
+ * [APPSHEET-HELPER] Crée un utilisateur 360sc et retourne directement son ID numérique ou un message d'erreur.
  * Conçue pour une intégration simplifiée, notamment avec AppSheet.
  * @customfunction
  * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
@@ -223,7 +223,7 @@ function creerUtilisateur360sc(typeSysteme, username, email, firstName, lastName
  * @param {string} firstName Le prénom de l'utilisateur.
  * @param {string} lastName Le nom de famille de l'utilisateur.
  * @param {string[]} [tags] Un tableau optionnel de tags.
- * @return {string} L'@id de l'utilisateur créé (ex: "/api/users/1234") en cas de succès, 
+ * @return {string} L'ID numérique de l'utilisateur créé (ex: "2206") en cas de succès, 
  *                  ou un message préfixé par "ERREUR: " en cas d'échec.
  */
 function creerUtilisateurEtRecupererId360sc(typeSysteme, username, email, firstName, lastName, tags) {
@@ -233,11 +233,13 @@ function creerUtilisateurEtRecupererId360sc(typeSysteme, username, email, firstN
   
   try {
     const result = JSON.parse(resultString);
-    if (result.success && result.user && result.user['@id']) {
-      Logger.log(`Succès pour creerUtilisateurEtRecupererId360sc. Utilisateur @id: ${result.user['@id']}`);
-      return result.user['@id'];
+    // MODIFICATION ICI: Utiliser result.user.id au lieu de result.user['@id']
+    // Et s'assurer qu'il est retourné comme une chaîne pour la cohérence avec les messages d'erreur.
+    if (result.success && result.user && typeof result.user.id !== 'undefined' && result.user.id !== null) {
+      Logger.log(`Succès pour creerUtilisateurEtRecupererId360sc. Utilisateur ID numérique: ${result.user.id}`);
+      return String(result.user.id); // Retourne l'ID numérique sous forme de chaîne
     } else {
-      const errorMessage = `ERREUR: ${result.error || result.message || 'Erreur inconnue lors de la création utilisateur ou @id manquant.'}`;
+      const errorMessage = `ERREUR: ${result.error || result.message || 'Erreur inconnue lors de la création utilisateur ou ID numérique manquant.'}`;
       Logger.log(errorMessage + ` Réponse brute: ${resultString}`);
       return errorMessage;
     }
@@ -279,7 +281,7 @@ function maFonctionDeTestPourCreerUtilisateur() {
   try {
     var resultatObjet = JSON.parse(resultatString);
     Logger.log("Résultat creerUtilisateur360sc (objet): " + JSON.stringify(resultatObjet, null, 2));
-    if (resultatObjet.success) { Logger.log("ID utilisateur créé: " + (resultatObjet.user ? resultatObjet.user['@id'] : "Non trouvé")); }
+    if (resultatObjet.success) { Logger.log("ID utilisateur créé (@id): " + (resultatObjet.user ? resultatObjet.user['@id'] : "Non trouvé") + ", ID numérique: " + (resultatObjet.user ? resultatObjet.user.id : "Non trouvé")); }
   } catch (e) { Logger.log("Erreur parsing JSON creerUtilisateur360sc: " + e.message); }
 
   Logger.log(`Appel creerUtilisateur360sc (test erreur - email manquant) avec: sys=${testSystemType}, user=${testUsername}_err`);
@@ -291,25 +293,22 @@ function maFonctionDeTestPourCreerUtilisateur() {
   } catch (e) { Logger.log("Erreur parsing JSON creerUtilisateur360sc (erreur): " + e.message); }
 }
 
-// --- NOUVELLE FONCTION DE TEST POUR LE WRAPPER UTILISATEUR ID ---
+// --- AJUSTEMENT DE LA FONCTION DE TEST (OPTIONNEL, pour la clarté des logs) ---
 function maFonctionDeTestPourCreerUtilisateurEtRecupererId() {
-  var testSystemType = "TEST"; // Assurez-vous que TEST est configuré et les identifiants stockés
+  var testSystemType = "TEST"; 
   var timestamp = new Date().getTime();
-  var testUsername = "TestUserIdWrap" + timestamp;
-  var testEmail = "testuseridwrap" + timestamp + "@example.com";
-  var testFirstName = "TestWrap";
-  var testLastName = "UtilisateurId" + timestamp;
-  var testTags = ["wrapperTest"];
+  var testUsername = "TestUserIdNum" + timestamp; 
+  var testEmail = "testuseridnum" + timestamp + "@example.com";
+  var testFirstName = "TestIdNum";
+  var testLastName = "UtilisateurIdNum" + timestamp;
+  var testTags = ["wrapperTestIdNum"];
 
-  Logger.log(`Test de creerUtilisateurEtRecupererId360sc: sys=${testSystemType}, user=${testUsername}, email=${testEmail}`);
+  Logger.log(`Test de creerUtilisateurEtRecupererId360sc (pour ID numérique): sys=${testSystemType}, user=${testUsername}, email=${testEmail}`);
   var resultatId = creerUtilisateurEtRecupererId360sc(testSystemType, testUsername, testEmail, testFirstName, testLastName, testTags);
-  Logger.log(`Résultat du test pour creerUtilisateurEtRecupererId360sc (devrait être un @id ou ERREUR): ${resultatId}`);
+  Logger.log(`Résultat du test pour creerUtilisateurEtRecupererId360sc (devrait être un ID numérique ou ERREUR): ${resultatId}`);
 
-  // Test d'un cas d'erreur (ex: username déjà existant - difficile à simuler sans créer puis recréer immédiatement,
-  // ou email invalide, ou paramètre manquant géré par la fonction principale)
-  // Testons un email manquant, qui sera intercepté par creerUtilisateur360sc
-  Logger.log(`Test d'erreur pour creerUtilisateurEtRecupererId360sc (email manquant): user=${testUsername}_errId`);
-  var resultatErreurId = creerUtilisateurEtRecupererId360sc(testSystemType, testUsername + "_errId", null, testFirstName, testLastName, testTags);
+  Logger.log(`Test d'erreur pour creerUtilisateurEtRecupererId360sc (email manquant): user=${testUsername}_errIdNum`);
+  var resultatErreurId = creerUtilisateurEtRecupererId360sc(testSystemType, testUsername + "_errIdNum", null, testFirstName, testLastName, testTags);
   Logger.log(`Résultat du test d'erreur pour creerUtilisateurEtRecupererId360sc (devrait être ERREUR): ${resultatErreurId}`);
 }
 
