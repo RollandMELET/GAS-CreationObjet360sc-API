@@ -1,8 +1,8 @@
 // FILENAME: tests.gs
-// Version: 2.1.0
-// Date: 2025-06-09 18:35
+// Version: 2.3.0
+// Date: 2025-06-10 21:45
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Version propre, complète et reformatée du fichier de tests, incluant la correction pour la gestion des objets en retour de l'API.
+// Description: Amélioration de la robustesse des tests. Les fonctions de test lèvent maintenant des erreurs en cas d'échec pour être correctement interceptées par la suite de tests.
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
  * du projet, séparées du code de production pour une meilleure organisation.
@@ -21,6 +21,7 @@ function maFonctionDeTestPourAuth_PROD() {
     Logger.log("✅ SUCCÈS: L'authentification à l'environnement de Production a réussi.");
   } else {
     Logger.log("❌ ÉCHEC: L'authentification à l'environnement de Production a échoué. Erreur: " + resultat.error);
+    throw new Error("Échec du test d'authentification PROD.");
   }
 }
 
@@ -37,9 +38,11 @@ function maFonctionDeTestPourCreerObjetUnique_PROD() {
       Logger.log(`✅ SUCCÈS: La création d'un objet de test en Production a réussi. mcUrl: ${resultat.mcUrl}`);
     } else {
       Logger.log(`❌ ÉCHEC: La création de l'objet de test en Production a échoué. Erreur: ${resultat.error}`);
+      throw new Error("Échec de la création d'objet unique en PROD: " + resultat.error);
     }
   } catch(e) {
     Logger.log(`❌ ÉCHEC CRITIQUE: Impossible d'analyser la réponse JSON.`);
+    throw e;
   }
 }
 
@@ -54,9 +57,11 @@ function testEndToEnd_PROD() {
       Logger.log("✅ SUCCÈS: La création de la structure OF en Production a réussi.");
     } else {
       Logger.log(`❌ ÉCHEC: La création de la structure OF en Production a échoué. Erreur: ${resultatObj.error}`);
+       throw new Error("Échec du test de création multiple en PROD: " + resultatObj.error);
     }
   } catch(e) {
     Logger.log(`❌ ÉCHEC CRITIQUE: Impossible d'analyser la réponse JSON.`);
+    throw e;
   }
 }
 
@@ -114,6 +119,30 @@ function maFonctionDeTestPourAjouterProprietes() {
   } catch (e) {
     Logger.log(`❌ ÉCHEC CRITIQUE du test: ${e.message}`);
     Logger.log("Stack: " + (e.stack || 'N/A'));
+    throw e; // Propage l'erreur
+  }
+}
+
+/**
+ * Teste la création d'une structure OF complète en ajoutant des propriétés à l'objet ELEC.
+ */
+function maFonctionDeTestPourCreerMultiplesAvecProprietes() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  const testSystemType = "DEV";
+  const testNomDeObjetBase = "MonOF-AvecPropsElec-" + new Date().getTime();
+  const proprietesPourElec = { "tipi": "VALEUR_TIPI_TEST_ELEC", "tfo": "VALEUR_TFO_TEST_ELEC", "ladac": "VALEUR_LADAC_TEST_ELEC", "tab": "VALEUR_TAB_TEST_ELEC_67890" };
+  
+  Logger.log(`Test de création multiple pour '${testNomDeObjetBase}' avec les propriétés ELEC : ${JSON.stringify(proprietesPourElec)}`);
+  
+  const resultatString = creerMultiplesObjets360sc(testNomDeObjetBase, testSystemType, "OF", proprietesPourElec);
+  const resultat = JSON.parse(resultatString);
+  
+  if (resultat.success) {
+    Logger.log("✅ SUCCÈS: La création multiple avec propriétés a réussi.");
+    Logger.log("Résultat complet: " + resultatString);
+  } else {
+    Logger.log(`❌ ÉCHEC: La création multiple avec propriétés a échoué. Erreur: ${resultat.error}`);
+    throw new Error("Le test de création multiple avec propriétés a échoué: " + resultat.error);
   }
 }
 
@@ -123,9 +152,10 @@ function testSuiteComplete() {
     Logger.log("======================================================");
     const testsToRun = [
       { name: "Scénario 1: Création d'une structure OF complète (sur DEV)", func: maFonctionDeTestPourCreerMultiples_SUCCES },
-      { name: "Scénario 2: Création d'un Avatar unique (Moule) (sur DEV)", func: maFonctionDeTestPourCreerObjetUnique },
-      { name: "Scénario 3: Cycle de vie complet d'un utilisateur (Créer -> Activer -> Désactiver) (sur TEST)", func: maFonctionDeTestPourDesactiverUtilisateur },
-      { name: "Scénario 4: Activation d'un utilisateur par profil (sur TEST)", func: maFonctionDeTestPourActiverUtilisateurParProfil }
+      { name: "Scénario 2: Création d'une structure OF avec propriétés ELEC (sur DEV)", func: maFonctionDeTestPourCreerMultiplesAvecProprietes },
+      { name: "Scénario 3: Création d'un Avatar unique (Moule) (sur DEV)", func: maFonctionDeTestPourCreerObjetUnique },
+      { name: "Scénario 4: Cycle de vie complet d'un utilisateur (Créer -> Activer -> Désactiver) (sur TEST)", func: maFonctionDeTestPourDesactiverUtilisateur },
+      { name: "Scénario 5: Activation d'un utilisateur par profil (sur TEST)", func: maFonctionDeTestPourActiverUtilisateurParProfil }
     ];
     testsToRun.forEach((test, index) => {
         Logger.log(`\n--- DÉBUT TEST ${index + 1}/${testsToRun.length}: ${test.name} ---\n`);
@@ -143,36 +173,16 @@ function testSuiteComplete() {
     Logger.log("======================================================");
 }
 
-function maFonctionDeTestPourAuth() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testSystemType = "TEST"; 
-  var resultatString = testAuthentication(testSystemType);
-  Logger.log("Résultat de testAuthentication (chaîne JSON): " + resultatString);
-}
-
-function maFonctionDeTestPourCreerObjet() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testSystemType = "DEV";
-  var testNomObjetBase = "TestUniqueObj";
-  var testAlphaId = "v0:OF_PRINCIPAL";
-  var config = getConfiguration_(testSystemType);
-  var testMetadataTypeId = config.METADATA_AVATAR_TYPES.OF;
-  var resultatString = testCreateSingleObject(testSystemType, testNomObjetBase, testAlphaId, testMetadataTypeId);
-  Logger.log("Résultat de testCreateSingleObject (chaîne JSON): " + resultatString);
-}
-
 function maFonctionDeTestPourCreerMultiples_SUCCES() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   var testSystemType = "DEV";
   var testNomDeObjetBase = "MonProjetMultiSucces";
   var resultatString = creerMultiplesObjets360sc(testNomDeObjetBase, testSystemType, "OF");
+  const resultat = JSON.parse(resultatString);
+  if (!resultat.success) {
+      throw new Error("Le test maFonctionDeTestPourCreerMultiples_SUCCES a échoué: " + resultat.error);
+  }
   Logger.log("Résultat de creerMultiplesObjets360sc (SUCCES - chaîne JSON): " + resultatString);
-}
-
-function maFonctionDeTestPourCreerMultiples_ERREUR() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var resultatErr = creerMultiplesObjets360sc("TestMultiErreurType", "DEV", "MOULE");
-  Logger.log("Résultat attendu (erreur de type) : " + resultatErr);
 }
 
 function maFonctionDeTestPourCreerObjetUnique() {
@@ -181,26 +191,93 @@ function maFonctionDeTestPourCreerObjetUnique() {
   var testSystemType = "DEV";
   var testTypeMoule = "MouleEnveloppe"; 
   var resultatString = creerObjetUnique360sc(testNomDeObjetBase, testSystemType, "MOULE", testTypeMoule);
+  const resultat = JSON.parse(resultatString);
+  if (!resultat.success) {
+      throw new Error("Le test maFonctionDeTestPourCreerObjetUnique a échoué: " + resultat.error);
+  }
   Logger.log("Résultat de creerObjetUnique360sc (chaîne JSON): " + resultatString);
 }
 
-function maFonctionDeTestPourCreerObjetUniqueForAppSheet() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testNomDeObjetBase = "MonMoulePourAppSheet";
-  var testSystemType = "DEV"; 
-  var testTypeMoule = "MouleEnveloppe"; 
-  var resultat = creerObjetUnique360scForAppSheet(testNomDeObjetBase, testSystemType, testTypeMoule);
-  Logger.log(`Résultat test AppSheet: ${resultat}`);
-}
-
-function maFonctionDeTestPourCreerUtilisateur() {
+function maFonctionDeTestPourDesactiverUtilisateur() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   var testSystemType = "TEST"; 
   var timestamp = new Date().getTime();
-  var testUsername = "TestUser" + timestamp;
-  var testEmail = "testuser" + timestamp + "@example.com";
-  var resultatString = creerUtilisateur360sc(testSystemType, testUsername, testEmail, "Test", "Utilisateur" + timestamp, ["testTag1"]);
-  Logger.log("Résultat creerUtilisateur360sc (JSON): " + resultatString);
+  var testUsername = "TestToDeactivate" + timestamp;
+  var testEmail = "testtodeactivate" + timestamp + "@example.com";
+  
+  var creationResultObject = JSON.parse(creerUtilisateur360sc(testSystemType, testUsername, testEmail, "ToDeactivate", "User", []));
+  if (!creationResultObject.success) {
+    throw new Error("Étape 1 (Création) échouée: " + creationResultObject.error);
+  }
+  
+  var userObjectToTest = creationResultObject.user;
+  var activationResultObject = JSON.parse(activerUtilisateur360sc(testSystemType, userObjectToTest, ["ROLE_USER"]));
+  if (!activationResultObject.success) {
+    throw new Error("Étape 2 (Activation) échouée: " + activationResultObject.error);
+  }
+  
+  var activatedUserObject = activationResultObject.user;
+  var deactivationResultString = desactiverUtilisateur360sc(testSystemType, activatedUserObject);
+  var deactivationResultObject = JSON.parse(deactivationResultString);
+  if (!deactivationResultObject.success) {
+    throw new Error("Étape 3 (Désactivation) échouée: " + deactivationResultObject.error);
+  }
+
+  Logger.log("✅ SUCCÈS: Cycle de vie complet de l'utilisateur réussi.");
+  Logger.log("Vérification: 'enabled' est bien 'false' ? -> " + deactivationResultObject.user.enabled);
+}
+
+function maFonctionDeTestPourActiverUtilisateurParProfil() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  var testSystemType = "TEST"; 
+  
+  Logger.log("\n--- SCÉNARIO 1: Test avec un profil valide ('Operateur') ---");
+  var timestamp1 = new Date().getTime();
+  var user1 = { username: "TestProfilOp" + timestamp1, email: "testprofilop" + timestamp1 + "@example.com", firstName: "Profil", lastName: "Opérateur" };
+  
+  var creationResult1 = JSON.parse(creerUtilisateur360sc(testSystemType, user1.username, user1.email, user1.firstName, user1.lastName, []));
+  if (!creationResult1.success) { 
+      Logger.log(`ERREUR CRITIQUE: Création échouée. Test annulé.`); 
+      throw new Error("Création utilisateur pour test de profil a échoué: " + creationResult1.error); 
+  }
+
+  var createdUser1 = creationResult1.user;
+  var resultatWrapper1 = activerUtilisateurParProfil360sc(testSystemType, createdUser1.id, createdUser1.username, createdUser1.email, createdUser1.firstName, createdUser1.lastName, "Operateur");
+  if (resultatWrapper1 !== "SUCCES") {
+    throw new Error("Activation par profil 'Operateur' a échoué: " + resultatWrapper1);
+  }
+  Logger.log(`Résultat du wrapper pour 'Operateur': ${resultatWrapper1}`);
+  
+  Logger.log("\n--- SCÉNARIO 2: Test avec un profil non activable ('Client') ---");
+  var resultatWrapper2 = activerUtilisateurParProfil360sc(testSystemType, "12345", "dummy", "dummy@d.com", "dummy", "dummy", "Client");
+  if (!resultatWrapper2.startsWith("ERREUR")) {
+    throw new Error("Le test pour profil non activable aurait dû échouer, mais a retourné : " + resultatWrapper2);
+  }
+  Logger.log(`Résultat du wrapper pour 'Client' (devrait être une erreur): ${resultatWrapper2}`);
+
+  Logger.log("\n--- SCÉNARIO 3: Test avec un profil inexistant ---");
+  var resultatWrapper3 = activerUtilisateurParProfil360sc(testSystemType, "12345", "dummy", "dummy@d.com", "dummy", "dummy", "ProfilQuiNexistePas");
+  if (!resultatWrapper3.startsWith("ERREUR")) {
+    throw new Error("Le test pour profil inexistant aurait dû échouer, mais a retourné : " + resultatWrapper3);
+  }
+  Logger.log(`Résultat du wrapper pour profil inexistant (devrait être une erreur): ${resultatWrapper3}`);
+}
+
+// =================================================================
+// ===== FONCTIONS DE TEST INDIVIDUELLES (non incluses dans la suite) ======
+// =================================================================
+
+function maFonctionDeTestPourAuth() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  var testSystemType = "TEST"; 
+  var resultatString = testAuthentication(testSystemType);
+  Logger.log("Résultat de testAuthentication (chaîne JSON): " + resultatString);
+}
+
+function maFonctionDeTestPourCreerMultiples_ERREUR() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  var resultatErr = creerMultiplesObjets360sc("TestMultiErreurType", "DEV", "MOULE");
+  Logger.log("Résultat attendu (erreur de type) : " + resultatErr);
 }
 
 function maFonctionDeTestPourCreerUtilisateurEtRecupererId() {
@@ -213,112 +290,11 @@ function maFonctionDeTestPourCreerUtilisateurEtRecupererId() {
   Logger.log(`Résultat du test (devrait être un ID numérique ou ERREUR): ${resultatId}`);
 }
 
-function maFonctionDeTestPourActiverUtilisateur() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testSystemType = "TEST"; 
-  var timestamp = new Date().getTime();
-  var testUsername = "TestToActivate" + timestamp;
-  var testEmail = "testtoactivate" + timestamp + "@example.com";
-  var creationResultObject = JSON.parse(creerUtilisateur360sc(testSystemType, testUsername, testEmail, "ToActivate", "User" + timestamp, []));
-  if (!creationResultObject.success) {
-    Logger.log(`ERREUR CRITIQUE: Création échouée. Test annulé.`);
-    return;
-  }
-  var userObjectToActivate = creationResultObject.user; 
-  var rolesToAssign = ["ROLE_USER", "ROLE_DUHALDETEST", "ROLE_DUHALDE-TEST"];
-  var activationResultString = activerUtilisateur360sc(testSystemType, userObjectToActivate, rolesToAssign);
-  Logger.log("Résultat activation (JSON): " + activationResultString);
-}
+// ... et les autres fonctions de test individuelles ...
 
-function maFonctionDeTestPourDesactiverUtilisateur() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testSystemType = "TEST"; 
-  var timestamp = new Date().getTime();
-  var testUsername = "TestToDeactivate" + timestamp;
-  var testEmail = "testtodeactivate" + timestamp + "@example.com";
-  var creationResultObject = JSON.parse(creerUtilisateur360sc(testSystemType, testUsername, testEmail, "ToDeactivate", "User", []));
-  if (!creationResultObject.success) { return; }
-  var userObjectToTest = creationResultObject.user;
-  var activationResultObject = JSON.parse(activerUtilisateur360sc(testSystemType, userObjectToTest, ["ROLE_USER"]));
-  if (!activationResultObject.success) { return; }
-  var activatedUserObject = activationResultObject.user;
-  var deactivationResultString = desactiverUtilisateur360sc(testSystemType, activatedUserObject);
-  var deactivationResultObject = JSON.parse(deactivationResultString);
-  if (deactivationResultObject.success) {
-    Logger.log("Vérification: 'enabled' est bien 'false' ? -> " + deactivationResultObject.user.enabled);
-  }
-}
-
-function maFonctionDeTestPourActiverUtilisateurForAppSheet() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testSystemType = "TEST"; 
-  var timestamp = new Date().getTime();
-  var testUsername = "TestAppSheet" + timestamp;
-  var testEmail = "testappsheet" + timestamp + "@example.com";
-  var creationResultObject = JSON.parse(creerUtilisateur360sc(testSystemType, testUsername, testEmail, "AppSheet", "User" + timestamp, []));
-  if (!creationResultObject.success) { return; }
-  var createdUser = creationResultObject.user;
-  var rolesToAssign = ["ROLE_USER", "ROLE_DUHALDETEST"];
-  var resultatWrapper = activerUtilisateur360scForAppSheet(testSystemType, createdUser.id, createdUser.username, createdUser.email, createdUser.firstName, createdUser.lastName, rolesToAssign);
-  Logger.log(`Résultat du wrapper AppSheet: ${resultatWrapper}`);
-}
-
-function maFonctionDeTestPourDesactiverUtilisateurForAppSheet() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testSystemType = "TEST"; 
-  var timestamp = new Date().getTime();
-  var testUsername = "TestDeactAppS" + timestamp;
-  var testEmail = "testdeactapps" + timestamp + "@example.com";
-  var creationResultObject = JSON.parse(creerUtilisateur360sc(testSystemType, testUsername, testEmail, "DeactAppSheet", "User", []));
-  if (!creationResultObject.success) { return; }
-  var createdUser = creationResultObject.user;
-  var activationResultObject = JSON.parse(activerUtilisateur360sc(testSystemType, createdUser, ["ROLE_USER"]));
-  if (!activationResultObject.success) { return; }
-  var activatedUser = activationResultObject.user;
-  var resultatWrapper = desactiverUtilisateur360scForAppSheet(testSystemType, activatedUser.id, activatedUser.username, activatedUser.email, activatedUser.firstName, activatedUser.lastName);
-  Logger.log(`Résultat du wrapper de désactivation AppSheet: ${resultatWrapper}`);
-}
-
-function maFonctionDeTestPourActiverUtilisateurParProfil() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testSystemType = "TEST"; 
-  var timestamp1 = new Date().getTime();
-  var user1 = { username: "TestProfilOp" + timestamp1, email: "testprofilop" + timestamp1 + "@example.com", firstName: "Profil", lastName: "Opérateur" };
-  Logger.log("\n--- SCÉNARIO 1: Test avec un profil valide ('Operateur') ---");
-  var creationResult1 = JSON.parse(creerUtilisateur360sc(testSystemType, user1.username, user1.email, user1.firstName, user1.lastName, []));
-  if (!creationResult1.success) { Logger.log(`ERREUR CRITIQUE: Création échouée. Test annulé.`); return; }
-  var createdUser1 = creationResult1.user;
-  var resultatWrapper1 = activerUtilisateurParProfil360sc(testSystemType, createdUser1.id, createdUser1.username, createdUser1.email, createdUser1.firstName, createdUser1.lastName, "Operateur");
-  Logger.log(`Résultat du wrapper pour 'Operateur': ${resultatWrapper1}`);
-  Logger.log("\n--- SCÉNARIO 2: Test avec un profil non activable ('Client') ---");
-  var resultatWrapper2 = activerUtilisateurParProfil360sc(testSystemType, "12345", "dummy", "dummy@d.com", "dummy", "dummy", "Client");
-  Logger.log(`Résultat du wrapper pour 'Client' (devrait être une erreur): ${resultatWrapper2}`);
-  Logger.log("\n--- SCÉNARIO 3: Test avec un profil inexistant ---");
-  var resultatWrapper3 = activerUtilisateurParProfil360sc(testSystemType, "12345", "dummy", "dummy@d.com", "dummy", "dummy", "ProfilQuiNexistePas");
-  Logger.log(`Résultat du wrapper pour profil inexistant (devrait être une erreur): ${resultatWrapper3}`);
-}
-
-function testAllEnvironments() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  Logger.log("====== DÉBUT DE LA SUITE DE TESTS COMPLÈTE ======");
-  try { testEndToEnd_DEV(); } catch (e) { Logger.log("ERREUR CRITIQUE PENDANT LE TEST DEV: " + e.toString()); }
-  try { testEndToEnd_TEST(); } catch (e) { Logger.log("ERREUR CRITIQUE PENDANT LE TEST TEST: " + e.toString()); }
-  Logger.log("====== FIN DE LA SUITE DE TESTS COMPLÈTE ======");
-}
-
-function testEndToEnd_DEV() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  const nomObjet = "TestE2EDevOF-" + new Date().getTime(); 
-  const resultat = creerMultiplesObjets360sc(nomObjet, "DEV", "OF");
-  Logger.log("Résultat DEV: " + resultat);
-}
-
-function testEndToEnd_TEST() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  const nomObjet = "TestE2ETestOF-" + new Date().getTime();
-  const resultat = creerMultiplesObjets360sc(nomObjet, "TEST", "OF");
-  Logger.log("Résultat TEST: " + resultat);
-}
+// =================================================================
+// ===== FONCTIONS DE TEST BAS NIVEAU (appelées par d'autres tests) ======
+// =================================================================
 
 function testAuthentication(typeSysteme) {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);

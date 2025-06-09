@@ -1,14 +1,15 @@
 // FILENAME: Code.gs
-// Version: 1.21.0
-// Date: 2025-06-09 18:40
+// Version: 1.22.0
+// Date: 2025-06-10 10:00
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Version finale stable et reformatée. Gère la nouvelle réponse objet de l'API et inclut la fonctionnalité d'ajout de propriétés.
+// Description: Ajout de la capacité à passer des propriétés à l'objet OF-ELEC lors de la création multiple.
 /**
  * @fileoverview Fichier principal contenant les fonctions exposées et appelables par des services externes comme AppSheet.
  * Ce fichier se concentre sur la création d'objets (Avatars). La logique de gestion des utilisateurs est dans `users.gs`.
  */
 
-function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
+// CHANGEMENT: Ajout du paramètre optionnel 'proprietesElec'
+function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, proprietesElec) {
   let finalOutput = { success: false, message: "" };
   try {
     if (!nomDeObjetBase || !typeSysteme) { throw new Error("'nomDeObjetBase' et 'typeSysteme' requis."); }
@@ -34,6 +35,21 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet) {
           finalOutput[objDef.key] = getMcUrlForAvatar_(token, systemTypeUpper, createdAvatarObject['@id']);
         } else {
            throw new Error("La réponse de création d'avatar était invalide.");
+        }
+
+        // CHANGEMENT: Logique pour ajouter des propriétés à l'objet OF-ELEC
+        if (objDef.alphaId === "v0:OF_ELEC" && proprietesElec && typeof proprietesElec === 'object' && Object.keys(proprietesElec).length > 0) {
+          Logger.log(`Détection de l'objet OF_ELEC. Tentative d'ajout des propriétés.`);
+          
+          const avatarId = createdAvatarObject['@id'].split('/').pop(); // Extrait l'ID de l'IRI
+          const propertiesPayload = Object.keys(proprietesElec).map(key => ({
+            name: key,
+            value: String(proprietesElec[key]),
+            private: false
+          }));
+
+          addPropertiesToAvatar_(token, systemTypeUpper, avatarId, propertiesPayload);
+          Logger.log(`Propriétés ajoutées avec succès à l'objet ${objectNameForApi}.`);
         }
 
       } catch (e) { 

@@ -1,9 +1,8 @@
 // FILENAME: users.gs
-// Version: 1.0.0
-// Date: 2025-06-08 10:00
-// Author: Rolland MELET
-// Description: Initial creation. Module dedicated to user management functions (create, activate, deactivate, wrappers).
-
+// Version: 1.1.0
+// Date: 2025-06-10 21:30
+// Author: Rolland MELET (Collaboratively with AI Senior Coder)
+// Description: Correction d'un bug majeur. La fonction creerUtilisateur360sc valide maintenant la réponse de l'API avant de la retourner comme un succès.
 /**
  * @fileoverview This file contains all functions related to user management
  * for the 360sc API, including internal logic and AppSheet wrappers.
@@ -18,7 +17,14 @@ function creerUtilisateur360sc(typeSysteme, username, email, firstName, lastName
     Logger.log(`Début création utilisateur '${username}', sys: ${systemTypeUpper}`);
     const token = getAuthToken_(systemTypeUpper);
     const userData = { username: username, email: email, firstName: firstName, lastName: lastName, tags: Array.isArray(tags) ? tags : [] };
+    
     const createdUser = createUser_(token, systemTypeUpper, userData);
+    
+    // CHANGEMENT: Ajout d'une validation critique de la réponse de l'API
+    if (!createdUser || typeof createdUser.id === 'undefined') {
+      throw new Error("La création de l'utilisateur dans l'API a réussi (code 201) mais n'a pas retourné un objet utilisateur valide.");
+    }
+
     finalOutput.success = true;
     finalOutput.message = `Utilisateur '${username}' créé.`;
     finalOutput.user = createdUser; 

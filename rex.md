@@ -1,9 +1,8 @@
 # FILENAME: rex.md
-# Version: 1.2.0
-# Date: 2025-06-08 16:30
+# Version: 1.3.0
+# Date: 2025-06-10 21:30
 # Author: Rolland MELET (Collaboratively with AI Senior Coder)
-# Description: Ajout du REX-006 concernant les erreurs de validation du manifest appsscript.json.
-
+# Description: Ajout du REX-007 sur la validation des réponses API et la robustesse des tests.
 # Rapport de Retour d'Expérience (REX) - Projet GAS-CreationObjet360sc-API
 
 ## REX Item 1: Spécificité des configurations par environnement
@@ -61,5 +60,24 @@
     1.  **Stricte conformité JSON :** Les fichiers `.json` ne doivent **jamais** contenir de commentaires.
     2.  **Spécificité du Runtime V8 :** La clé `fileOrder` est obsolète et ne doit plus être utilisée. Le runtime gère les dépendances implicitement. Toujours se référer à la documentation la plus récente.
     3.  **Validation précoce :** Utiliser un linter JSON dans VSCode peut permettre de détecter ces erreurs de syntaxe avant même la tentative de déploiement.
+
+---
+
+
+
+## REX Item 7: Validation des Réponses API et Robustesse des Tests
+*   **Problème:**
+    L'API de création d'utilisateurs sur l'environnement de TEST retournait un statut de succès (HTTP 201) mais avec un corps de réponse vide, causant des erreurs `TypeError` imprévues plus loin dans le code. De plus, la suite de tests ne rapportait pas ces erreurs correctement.
+*   **Description:**
+    1.  La fonction `creerUtilisateur360sc` faisait confiance au code de statut HTTP 201 et ne validait pas que le corps de la réponse contenait bien un objet utilisateur valide.
+    2.  Les fonctions de test interceptaient les erreurs et les affichaient dans les logs, mais ne les propageaient pas (`throw`), ce qui faisait que la suite de tests `testSuiteComplete` les considérait à tort comme des succès.
+*   **Impact:**
+    Un bug latent dans le code de production et une suite de tests non fiable qui masquait les problèmes réels.
+*   **Solution Appliquée:**
+    1.  **Code de production (`users.gs`):** Ajout d'une validation explicite pour s'assurer que la réponse de l'API de création d'utilisateur contient bien un objet avec un `id` avant de retourner un succès.
+    2.  **Code de test (`tests.gs`):** Modification des fonctions de test pour qu'elles lèvent (`throw`) une `Error` en cas de condition d'échec. Cela permet au `try...catch` de `testSuiteComplete` de les intercepter et de les signaler comme des "ERREURS CRITIQUES".
+*   **Leçons Apprises:**
+    1.  **Ne jamais faire confiance à un code de statut seul :** Toujours valider le contenu (le "contrat") d'une réponse API avant de la traiter, même si le code de statut est un succès.
+    2.  **Les tests doivent être stricts et échouer bruyamment :** Une suite de tests qui ne signale pas clairement un échec est dangereuse. Un test doit propager les erreurs pour que le harnais de test puisse les rapporter.
 
 ---
