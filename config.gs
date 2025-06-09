@@ -1,8 +1,8 @@
 // FILENAME: config.gs
-// Version: 1.6.0
-// Date: 2025-06-07 15:00
+// Version: 1.7.0
+// Date: 2025-06-09 10:25
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout de ROLE_MAPPING pour la gestion des profils utilisateur.
+// Description: Ajout des configurations pour l'environnement de Production (PROD).
 /**
  * @fileoverview Configuration settings for the 360sc API interaction script.
  */
@@ -65,13 +65,13 @@ const ENV_CONFIG = {
     }
   },
   PROD: {
-    API_BASE_URL: "https://apiv2.360sc.yt",
-    COMPANY_ID: "VOTRE_ID_COMPANIE_PROD",
-    GENERATE_MC_FINGER: "VOTRE_MC_FINGER_ID_POUR_PROD",
+    API_BASE_URL: "https://apiv2.360sc.yt", // SUPPOSITION - À CONFIRMER SI DIFFÉRENT
+    COMPANY_ID: "/api/companies/684468d6e74bb",
+    GENERATE_MC_FINGER: "/api/fingers/684469bdb1ea0",
     METADATA_AVATAR_TYPES: {
-      OF: "VOTRE_METADATA_ID_OF_POUR_PROD",
-      MOULE: "VOTRE_METADATA_ID_MOULE_POUR_PROD",
-      DEFAULT: "VOTRE_METADATA_ID_DEFAULT_POUR_PROD"
+      OF: "/api/metadata_avatar_types/684469d19d051",
+      MOULE: "/api/metadata_avatar_types/684469e053ba5",
+      DEFAULT: "/api/metadata_avatar_types/684469d19d051" // SUPPOSITION: Default est le même que OF. À ajuster si nécessaire.
     }
   }
 };

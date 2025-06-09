@@ -1,12 +1,119 @@
 // FILENAME: tests.gs
-// Version: 1.3.0
-// Date: 2025-06-07 15:00
+// Version: 1.7.0
+// Date: 2025-06-09 12:00
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout du test pour le nouveau wrapper d'activation par profil.
+// Description: Ajout de la fonction de test de bout-en-bout pour la PROD (testEndToEnd_PROD). Maintenue séparée de la suite de tests principale pour des raisons de sécurité.
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
  * du projet, séparées du code de production pour une meilleure organisation.
  */
+
+// =================================================================
+// =========== TESTS DÉDIÉS ET SÉCURISÉS POUR LA PRODUCTION =========
+// =================================================================
+
+/**
+ * Exécute un test d'authentification simple sur l'environnement PROD.
+ * Il ne crée ni ne modifie aucune donnée.
+ */
+function maFonctionDeTestPourAuth_PROD() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  var testSystemType = "PROD";
+  var resultatString = testAuthentication(testSystemType);
+  Logger.log("Résultat du test d'authentification PROD (chaîne JSON): " + resultatString);
+  var resultat = JSON.parse(resultatString);
+  if (resultat.success) {
+    Logger.log("✅ SUCCÈS: L'authentification à l'environnement de Production a réussi.");
+  } else {
+    Logger.log("❌ ÉCHEC: L'authentification à l'environnement de Production a échoué. Erreur: " + resultat.error);
+  }
+}
+
+/**
+ * Exécute un test de création d'un objet unique sur l'environnement PROD.
+ * Crée un objet "Moule" unique avec un nom de test identifiable.
+ */
+function maFonctionDeTestPourCreerObjetUnique_PROD() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  var testSystemType = "PROD";
+  var testNomDeObjetBase = "TEST-PROD-VALIDATION-CREATION-01";
+  var testTypeMoule = "MouleEnveloppe";
+  var testTypeObjet = "MOULE";
+  
+  Logger.log(`Tentative de création d'un objet unique en PROD : ${testNomDeObjetBase}`);
+  var resultatString = creerObjetUnique360sc(testNomDeObjetBase, testSystemType, testTypeObjet, testTypeMoule);
+  Logger.log("Résultat de la création PROD (chaîne JSON): " + resultatString);
+  
+  try {
+    var resultat = JSON.parse(resultatString);
+    if (resultat.success) {
+      Logger.log(`✅ SUCCÈS: La création d'un objet de test en Production a réussi. mcUrl: ${resultat.mcUrl}`);
+    } else {
+      Logger.log(`❌ ÉCHEC: La création de l'objet de test en Production a échoué. Erreur: ${resultat.error}`);
+    }
+  } catch(e) {
+    Logger.log(`❌ ÉCHEC CRITIQUE: Impossible d'analyser la réponse JSON. Réponse brute: ${resultatString}`);
+  }
+}
+
+/**
+ * [ATTENTION] Crée une structure OF complète (5 objets) en PRODUCTION.
+ * À n'utiliser que pour une validation ponctuelle et délibérée.
+ */
+function testEndToEnd_PROD() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  Logger.log("⚠️ ATTENTION : Création de 5 objets de test sur l'environnement de PRODUCTION.");
+  const nomObjet = "OF-PROD-TEST-E2E-" + new Date().getTime(); 
+  const resultat = creerMultiplesObjets360sc(nomObjet, "PROD", "OF");
+  Logger.log("Résultat PROD: " + resultat);
+  
+  try {
+    var resultatObj = JSON.parse(resultat);
+    if (resultatObj.success) {
+      Logger.log("✅ SUCCÈS: La création de la structure OF en Production a réussi.");
+    } else {
+      Logger.log(`❌ ÉCHEC: La création de la structure OF en Production a échoué. Erreur: ${resultatObj.error}`);
+    }
+  } catch(e) {
+    Logger.log(`❌ ÉCHEC CRITIQUE: Impossible d'analyser la réponse JSON. Réponse brute: ${resultat}`);
+  }
+}
+
+// =================================================================
+// =============== SUITE DE TESTS POUR DEV & TEST ==================
+// =================================================================
+
+function testSuiteComplete() {
+    Logger.log("======================================================");
+    Logger.log("Lancement de la SUITE DE TESTS COMPLÈTE (DEV & TEST)");
+    Logger.log("======================================================");
+    const testsToRun = [
+      { name: "Scénario 1: Création d'une structure OF complète (sur DEV)", func: maFonctionDeTestPourCreerMultiples_SUCCES },
+      { name: "Scénario 2: Création d'un Avatar unique (Moule) (sur DEV)", func: maFonctionDeTestPourCreerObjetUnique },
+      { name: "Scénario 3: Cycle de vie complet d'un utilisateur (Créer -> Activer -> Désactiver) (sur TEST)", func: maFonctionDeTestPourDesactiverUtilisateur },
+      { name: "Scénario 4: Activation d'un utilisateur par profil (sur TEST)", func: maFonctionDeTestPourActiverUtilisateurParProfil }
+    ];
+    // NOTE: Les tests de production ne sont PAS inclus ici pour des raisons de sécurité.
+    // Ils doivent être lancés manuellement et de manière intentionnelle.
+    
+    testsToRun.forEach((test, index) => {
+        Logger.log(`\n--- DÉBUT TEST ${index + 1}/${testsToRun.length}: ${test.name} ---\n`);
+        try {
+            test.func();
+            Logger.log(`\n--- SUCCÈS TEST ${index + 1}: ${test.name} ---\n`);
+        } catch (e) {
+            Logger.log(`\n--- ERREUR CRITIQUE TEST ${index + 1}: ${test.name} ---`);
+            Logger.log("ERREUR: " + e.toString());
+            Logger.log("STACK: " + (e.stack || 'N/A'));
+        }
+    });
+    Logger.log("======================================================");
+    Logger.log("SUITE DE TESTS COMPLÈTE TERMINÉE");
+    Logger.log("======================================================");
+}
+
+
+// --- Fonctions de test individuelles (inchangées) ---
 
 function maFonctionDeTestPourAuth() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
@@ -168,7 +275,6 @@ function testAllEnvironments() {
   Logger.log("====== DÉBUT DE LA SUITE DE TESTS COMPLÈTE ======");
   try { testEndToEnd_DEV(); } catch (e) { Logger.log("ERREUR CRITIQUE PENDANT LE TEST DEV: " + e.toString()); }
   try { testEndToEnd_TEST(); } catch (e) { Logger.log("ERREUR CRITIQUE PENDANT LE TEST TEST: " + e.toString()); }
-  try { testEndToEnd_PROD(); } catch (e) { Logger.log("ERREUR CRITIQUE PENDANT LE TEST PROD: " + e.toString()); }
   Logger.log("====== FIN DE LA SUITE DE TESTS COMPLÈTE ======");
 }
 
@@ -184,18 +290,6 @@ function testEndToEnd_TEST() {
   const nomObjet = "TestE2ETestOF-" + new Date().getTime();
   const resultat = creerMultiplesObjets360sc(nomObjet, "TEST", "OF");
   Logger.log("Résultat TEST: " + resultat);
-}
-
-function testEndToEnd_PROD() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  const canRunProdTest = false; 
-  if (!canRunProdTest) {
-    Logger.log("AVERTISSEMENT: Le test PROD est désactivé par sécurité.");
-    return;
-  }
-  const nomObjet = "TestE2EProdOF-" + new Date().getTime();
-  const resultat = creerMultiplesObjets360sc(nomObjet, "PROD", "OF");
-  Logger.log("Résultat PROD: " + resultat);
 }
 
 function testAuthentication(typeSysteme) {
@@ -229,30 +323,4 @@ function testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest, meta
     finalOutput.error = e.message;
   }
   return JSON.stringify(finalOutput);
-}
-
-function testSuiteComplete() {
-    Logger.log("======================================================");
-    Logger.log("Lancement de la SUITE DE TESTS COMPLÈTE");
-    Logger.log("======================================================");
-    const testsToRun = [
-      { name: "Scénario 1: Création d'une structure OF complète (sur DEV)", func: maFonctionDeTestPourCreerMultiples_SUCCES },
-      { name: "Scénario 2: Création d'un Avatar unique (Moule) (sur DEV)", func: maFonctionDeTestPourCreerObjetUnique },
-      { name: "Scénario 3: Cycle de vie complet d'un utilisateur (Créer -> Activer -> Désactiver) (sur TEST)", func: maFonctionDeTestPourDesactiverUtilisateur },
-      { name: "Scénario 4: Activation d'un utilisateur par profil (sur TEST)", func: maFonctionDeTestPourActiverUtilisateurParProfil }
-    ];
-    testsToRun.forEach((test, index) => {
-        Logger.log(`\n--- DÉBUT TEST ${index + 1}/${testsToRun.length}: ${test.name} ---\n`);
-        try {
-            test.func();
-            Logger.log(`\n--- SUCCÈS TEST ${index + 1}: ${test.name} ---\n`);
-        } catch (e) {
-            Logger.log(`\n--- ERREUR CRITIQUE TEST ${index + 1}: ${test.name} ---`);
-            Logger.log("ERREUR: " + e.toString());
-            Logger.log("STACK: " + (e.stack || 'N/A'));
-        }
-    });
-    Logger.log("======================================================");
-    Logger.log("SUITE DE TESTS COMPLÈTE TERMINÉE");
-    Logger.log("======================================================");
 }
