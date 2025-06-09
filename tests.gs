@@ -1,8 +1,8 @@
 // FILENAME: tests.gs
-// Version: 1.7.0
-// Date: 2025-06-09 12:00
+// Version: 2.1.0
+// Date: 2025-06-09 18:35
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout de la fonction de test de bout-en-bout pour la PROD (testEndToEnd_PROD). Maintenue séparée de la suite de tests principale pour des raisons de sécurité.
+// Description: Version propre, complète et reformatée du fichier de tests, incluant la correction pour la gestion des objets en retour de l'API.
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
  * du projet, séparées du code de production pour une meilleure organisation.
@@ -12,15 +12,10 @@
 // =========== TESTS DÉDIÉS ET SÉCURISÉS POUR LA PRODUCTION =========
 // =================================================================
 
-/**
- * Exécute un test d'authentification simple sur l'environnement PROD.
- * Il ne crée ni ne modifie aucune donnée.
- */
 function maFonctionDeTestPourAuth_PROD() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   var testSystemType = "PROD";
   var resultatString = testAuthentication(testSystemType);
-  Logger.log("Résultat du test d'authentification PROD (chaîne JSON): " + resultatString);
   var resultat = JSON.parse(resultatString);
   if (resultat.success) {
     Logger.log("✅ SUCCÈS: L'authentification à l'environnement de Production a réussi.");
@@ -29,21 +24,13 @@ function maFonctionDeTestPourAuth_PROD() {
   }
 }
 
-/**
- * Exécute un test de création d'un objet unique sur l'environnement PROD.
- * Crée un objet "Moule" unique avec un nom de test identifiable.
- */
 function maFonctionDeTestPourCreerObjetUnique_PROD() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   var testSystemType = "PROD";
   var testNomDeObjetBase = "TEST-PROD-VALIDATION-CREATION-01";
   var testTypeMoule = "MouleEnveloppe";
   var testTypeObjet = "MOULE";
-  
-  Logger.log(`Tentative de création d'un objet unique en PROD : ${testNomDeObjetBase}`);
   var resultatString = creerObjetUnique360sc(testNomDeObjetBase, testSystemType, testTypeObjet, testTypeMoule);
-  Logger.log("Résultat de la création PROD (chaîne JSON): " + resultatString);
-  
   try {
     var resultat = JSON.parse(resultatString);
     if (resultat.success) {
@@ -52,21 +39,15 @@ function maFonctionDeTestPourCreerObjetUnique_PROD() {
       Logger.log(`❌ ÉCHEC: La création de l'objet de test en Production a échoué. Erreur: ${resultat.error}`);
     }
   } catch(e) {
-    Logger.log(`❌ ÉCHEC CRITIQUE: Impossible d'analyser la réponse JSON. Réponse brute: ${resultatString}`);
+    Logger.log(`❌ ÉCHEC CRITIQUE: Impossible d'analyser la réponse JSON.`);
   }
 }
 
-/**
- * [ATTENTION] Crée une structure OF complète (5 objets) en PRODUCTION.
- * À n'utiliser que pour une validation ponctuelle et délibérée.
- */
 function testEndToEnd_PROD() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   Logger.log("⚠️ ATTENTION : Création de 5 objets de test sur l'environnement de PRODUCTION.");
   const nomObjet = "OF-PROD-TEST-E2E-" + new Date().getTime(); 
   const resultat = creerMultiplesObjets360sc(nomObjet, "PROD", "OF");
-  Logger.log("Résultat PROD: " + resultat);
-  
   try {
     var resultatObj = JSON.parse(resultat);
     if (resultatObj.success) {
@@ -75,13 +56,66 @@ function testEndToEnd_PROD() {
       Logger.log(`❌ ÉCHEC: La création de la structure OF en Production a échoué. Erreur: ${resultatObj.error}`);
     }
   } catch(e) {
-    Logger.log(`❌ ÉCHEC CRITIQUE: Impossible d'analyser la réponse JSON. Réponse brute: ${resultat}`);
+    Logger.log(`❌ ÉCHEC CRITIQUE: Impossible d'analyser la réponse JSON.`);
   }
 }
 
 // =================================================================
 // =============== SUITE DE TESTS POUR DEV & TEST ==================
 // =================================================================
+
+/**
+ * Teste l'ajout de propriétés à un avatar OF_ENVELOPPE.
+ * Crée un avatar OF_ENVELOPPE temporaire, lui ajoute des propriétés, puis logue le résultat.
+ */
+function maFonctionDeTestPourAjouterProprietes() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  const testSystemType = "DEV";
+  
+  try {
+    // Étape 1: Créer un avatar OF_ENVELOPPE temporaire pour le test
+    Logger.log("Étape 1: Création d'un avatar OF_ENVELOPPE temporaire...");
+    const nomObjetTest = "TestOF-AvecProps-" + new Date().getTime();
+    
+    const config = getConfiguration_(testSystemType);
+    const token = getAuthToken_(testSystemType);
+    const metadataAvatarTypeId = config.METADATA_AVATAR_TYPES.OF;
+    
+    const nomEnveloppe = `v0:OF_ENVELOPPE:${nomObjetTest}-ENV`;
+    const createdAvatarObject = createAvatar_(token, testSystemType, nomEnveloppe, "v0:OF_ENVELOPPE", metadataAvatarTypeId);
+    
+    if (!createdAvatarObject || !createdAvatarObject['@id']) {
+      throw new Error("La création de l'avatar de test OF_ENVELOPPE a échoué ou n'a pas retourné d'ID.");
+    }
+
+    const avatarIdPath = createdAvatarObject['@id'];
+    const tempAvatarId = avatarIdPath.split('/').pop();
+    Logger.log(`Avatar de test OF_ENVELOPPE créé avec succès. ID: ${tempAvatarId}`);
+
+    // Étape 2: Ajouter des propriétés à cet avatar
+    Logger.log("Étape 2: Ajout des propriétés à l'avatar de test...");
+    const proprietesAAjouter = {
+      "tipi": "VALEUR_TIPI_TEST",
+      "tfo": "VALEUR_TFO_TEST",
+      "ladac": "VALEUR_LADAC_TEST",
+      "tab": "VALEUR_TAB_TEST_12345"
+    };
+
+    const ajoutResultString = ajouterProprietesAvatar360sc(testSystemType, tempAvatarId, proprietesAAjouter);
+    const ajoutResult = JSON.parse(ajoutResultString);
+
+    if (ajoutResult.success) {
+      Logger.log("✅ SUCCÈS: La fonction d'ajout de propriétés a terminé avec succès.");
+      Logger.log("Réponse complète: " + ajoutResultString);
+    } else {
+      throw new Error("La fonction d'ajout de propriétés a échoué. Erreur: " + ajoutResult.error);
+    }
+
+  } catch (e) {
+    Logger.log(`❌ ÉCHEC CRITIQUE du test: ${e.message}`);
+    Logger.log("Stack: " + (e.stack || 'N/A'));
+  }
+}
 
 function testSuiteComplete() {
     Logger.log("======================================================");
@@ -93,27 +127,21 @@ function testSuiteComplete() {
       { name: "Scénario 3: Cycle de vie complet d'un utilisateur (Créer -> Activer -> Désactiver) (sur TEST)", func: maFonctionDeTestPourDesactiverUtilisateur },
       { name: "Scénario 4: Activation d'un utilisateur par profil (sur TEST)", func: maFonctionDeTestPourActiverUtilisateurParProfil }
     ];
-    // NOTE: Les tests de production ne sont PAS inclus ici pour des raisons de sécurité.
-    // Ils doivent être lancés manuellement et de manière intentionnelle.
-    
     testsToRun.forEach((test, index) => {
         Logger.log(`\n--- DÉBUT TEST ${index + 1}/${testsToRun.length}: ${test.name} ---\n`);
-        try {
-            test.func();
-            Logger.log(`\n--- SUCCÈS TEST ${index + 1}: ${test.name} ---\n`);
-        } catch (e) {
-            Logger.log(`\n--- ERREUR CRITIQUE TEST ${index + 1}: ${test.name} ---`);
-            Logger.log("ERREUR: " + e.toString());
-            Logger.log("STACK: " + (e.stack || 'N/A'));
+        try { 
+          test.func(); 
+          Logger.log(`\n--- SUCCÈS TEST ${index + 1}: ${test.name} ---\n`);
+        } catch (e) { 
+          Logger.log(`\n--- ERREUR CRITIQUE TEST ${index + 1}: ${test.name} ---`);
+          Logger.log("ERREUR: " + e.toString());
+          Logger.log("STACK: " + (e.stack || 'N/A'));
         }
     });
     Logger.log("======================================================");
     Logger.log("SUITE DE TESTS COMPLÈTE TERMINÉE");
     Logger.log("======================================================");
 }
-
-
-// --- Fonctions de test individuelles (inchangées) ---
 
 function maFonctionDeTestPourAuth() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
@@ -313,11 +341,11 @@ function testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest, meta
     const systemTypeUpper = typeSysteme.toUpperCase();
     const token = getAuthToken_(systemTypeUpper);
     const objectNameForApiTest = `${alphaIdTest}:${nomObjetTestBase}`;
-    const avatarIdPath = createAvatar_(token, systemTypeUpper, objectNameForApiTest, alphaIdTest, metadataAvatarTypeIdTest);
-    const mcUrl = getMcUrlForAvatar_(token, systemTypeUpper, avatarIdPath);
+    const avatarObject = createAvatar_(token, systemTypeUpper, objectNameForApiTest, alphaIdTest, metadataAvatarTypeIdTest);
+    const mcUrl = avatarObject.mcUrl || getMcUrlForAvatar_(token, systemTypeUpper, avatarObject['@id']);
     finalOutput.success = true;
     finalOutput.message = `Objet unique (${systemTypeUpper}) créé.`;
-    finalOutput.avatarApiIdPath = avatarIdPath;
+    finalOutput.avatarApiIdPath = avatarObject['@id'];
     finalOutput.mcUrl = mcUrl;
   } catch (e) {
     finalOutput.error = e.message;

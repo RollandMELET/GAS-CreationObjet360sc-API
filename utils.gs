@@ -1,13 +1,37 @@
 // FILENAME: utils.gs
-// Version: 1.4.0
-// Date: 2025-06-06 12:40
+// Version: 1.5.0
+// Date: 2025-06-09 17:45
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Suppression des fonctions de diagnostic temporaires (`temp_...`) maintenant que les configurations sont validées.
+// Description: Réintégration de la fonction vitale getApiCredentials_ qui était manquante.
 /**
- * @fileoverview Utility functions for the script, including credential management.
+ * @fileoverview Fonctions utilitaires, notamment pour la gestion des identifiants API
+ * de manière sécurisée et les fonctions de maintenance des identifiants.
  */
 
-// testSimpleBrowserMsgBox reste commenté comme dans la version originale.
+/**
+ * Récupère les identifiants API (username/password) pour un système donné depuis
+ * le PropertiesService pour éviter de les stocker en clair dans le code.
+ * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
+ * @return {object} Un objet contenant le username et le password.
+ * @throws {Error} Si les identifiants ne sont pas configurés pour le système demandé.
+ */
+function getApiCredentials_(typeSysteme) {
+  const properties = PropertiesService.getScriptProperties();
+  const username = properties.getProperty(`API_USERNAME_${typeSysteme}`);
+  const password = properties.getProperty(`API_PASSWORD_${typeSysteme}`);
+
+  if (!username || !password) {
+    throw new Error(`Identifiants API_USERNAME_${typeSysteme} et/ou API_PASSWORD_${typeSysteme} non trouvés dans les Propriétés du script.`);
+  }
+
+  return { username: username, password: password };
+}
+
+
+// =================================================================
+// =========== FONCTIONS DE MAINTENANCE DES IDENTIFIANTS ===========
+// =================================================================
+
 function testSimpleBrowserMsgBox() {
   // ... (contenu original commenté)
   Logger.log("testSimpleBrowserMsgBox a été appelé (contenu original commenté).");
@@ -77,7 +101,6 @@ function storeProdApiCredentials() {
   Logger.log("Tentative de stockage des identifiants PROD. VEUILLEZ MODIFIER LES PLACEHOLDERS DANS LE CODE AVANT D'EXECUTER SI CE N'EST PAS FAIT.");
   _storeApiCredentials("PROD", username_prod, password_prod);
 }
-
 
 /**
  * Retrieves and logs stored API credentials for all configured environments.

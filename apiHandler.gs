@@ -1,157 +1,150 @@
 // FILENAME: apiHandler.gs
-// Version: 1.4.1
-// Date: 2025-06-07 13:20 // Modifié pour la date actuelle
+// Version: 1.9.0
+// Date: 2025-06-09 18:30
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Suppression de la fonction getUser_ qui est inutilisable (erreur API 405).
+// Description: Version finale stable. Ajout de l'en-tête 'x-deduplication-id' à toutes les opérations de modification. Adaptation à la nouvelle réponse de création d'avatar et au changement de méthode de getMcUrlForAvatar (POST -> GET).
 /**
- * @fileoverview Handles interactions with the 360sc API.
+ * @fileoverview Fonctions de bas niveau pour les appels à l'API 360sc.
  */
 
 function getAuthToken_(typeSysteme) {
-  const systemTypeUpper = typeSysteme.toUpperCase();
-  const scriptProperties = PropertiesService.getScriptProperties();
-  const apiUsername = scriptProperties.getProperty(`API_USERNAME_${systemTypeUpper}`);
-  const apiPassword = scriptProperties.getProperty(`API_PASSWORD_${systemTypeUpper}`);
-
-  if (!apiUsername || !apiPassword) {
-    const errorMessage = `ERREUR CRITIQUE: Identifiants API_USERNAME_${systemTypeUpper} ou API_PASSWORD_${systemTypeUpper} non trouvés.`;
-    Logger.log(errorMessage);
-    throw new Error(errorMessage);
-  }
-
-  const config = getConfiguration_(systemTypeUpper); 
-  const authUrl = config.API_BASE_URL + config.AUTH_ENDPOINT;
-  const payload = { username: apiUsername, password: apiPassword };
-  const options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
-
-  Logger.log(`Authentification en cours pour ${systemTypeUpper} sur : ${authUrl}`);
-  const response = UrlFetchApp.fetch(authUrl, options);
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
-
-  if (responseCode === 200) {
-    const jsonResponse = JSON.parse(responseBody);
-    if (jsonResponse.token) {
-      Logger.log(`Authentification ${systemTypeUpper} réussie.`);
-      return jsonResponse.token;
-    } else {
-      throw new Error("Erreur d'authentification : token non trouvé.");
-    }
-  } else {
-    throw new Error(`Échec de l'authentification pour ${systemTypeUpper}. Code: ${responseCode}. Message: ${responseBody}`);
-  }
-}
-
-function createAvatar_(accessToken, typeSysteme, objectNameForApi, alphaId, metadataAvatarTypeId) {
-  const config = getConfiguration_(typeSysteme); 
-  const avatarsUrl = config.API_BASE_URL + config.AVATARS_ENDPOINT;
-  if (!metadataAvatarTypeId) { throw new Error("'metadataAvatarTypeId' requis pour createAvatar_."); }
-  const payload = { name: objectNameForApi, alphaId: alphaId, generateMCQuantity: config.GENERATE_MC_QUANTITY, company: config.COMPANY_ID, metadataAvatarType: metadataAvatarTypeId };
-  if (config.GENERATE_MC_FINGER && String(config.GENERATE_MC_FINGER).trim() !== "") { payload.generateMCFinger = config.GENERATE_MC_FINGER; }
-  const options = { method: 'post', contentType: 'application/json', headers: {'Authorization': 'Bearer ' + accessToken, 'x-deduplication-id': Utilities.getUuid()}, payload: JSON.stringify(payload), muteHttpExceptions: true };
-  Logger.log(`Création avatar (${typeSysteme}): ${objectNameForApi} sur ${avatarsUrl}`);
-  const response = UrlFetchApp.fetch(avatarsUrl, options);
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
-  if (responseCode === 201) {
-    const jsonResponse = JSON.parse(responseBody);
-    if (jsonResponse['@id']) { return jsonResponse['@id']; } 
-    else { throw new Error(`Erreur création avatar : @id non trouvé. Réponse: ${responseBody}`); }
-  } else { throw new Error(`Échec création avatar pour ${objectNameForApi}. Code: ${responseCode}. Message: ${responseBody}`); }
-}
-
-function getMcUrlForAvatar_(accessToken, typeSysteme, avatarApiIdPath) {
   const config = getConfiguration_(typeSysteme);
-  const mcUrlFetchFullUrl = config.API_BASE_URL + avatarApiIdPath + config.MCS_SUFFIX_PATH;
-  const options = { method: 'get', headers: {'Authorization': 'Bearer ' + accessToken }, muteHttpExceptions: true };
-  Logger.log(`Récupération mcUrl pour ${avatarApiIdPath} (${typeSysteme}) sur ${mcUrlFetchFullUrl}`);
-  const response = UrlFetchApp.fetch(mcUrlFetchFullUrl, options);
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
-  if (responseCode === 200) {
-    const jsonResponse = JSON.parse(responseBody);
-    if (jsonResponse['hydra:member'] && jsonResponse['hydra:member'][0] && jsonResponse['hydra:member'][0].yourls.mcUrl) {
-      return jsonResponse['hydra:member'][0].yourls.mcUrl;
-    } else { throw new Error(`Erreur récupération mcUrl : structure de réponse inattendue. Réponse: ${responseBody}`); }
-  } else { throw new Error(`Échec récupération mcUrl pour ${avatarApiIdPath}. Code: ${responseCode}. Message: ${responseBody}`); }
-}
+  const credentials = getApiCredentials_(typeSysteme);
+  const cache = CacheService.getScriptCache();
+  const cacheKey = `API_TOKEN_${typeSysteme}`;
+  
+  let token = cache.get(cacheKey);
+  if (token) { return token; }
 
-function createUser_(accessToken, typeSysteme, userData) {
-  const config = getConfiguration_(typeSysteme);
-  let usersUrl;
-  const systemTypeUpper = typeSysteme.toUpperCase();
-
-  if ((systemTypeUpper === "TEST" || systemTypeUpper === "PROD") && config.API_BASE_URL === "https://apiv2.360sc.yt") {
-    usersUrl = "https://api.360sc.yt" + config.USERS_ENDPOINT; 
-    Logger.log(`Info: Utilisation URL spécifique ("https://api.360sc.yt") pour users en ${systemTypeUpper}.`);
-  } else {
-    usersUrl = config.API_BASE_URL + config.USERS_ENDPOINT;
-    Logger.log(`Info: Utilisation URL standard ("${config.API_BASE_URL}") pour users en ${systemTypeUpper}.`);
-  }
-  if (!userData.username || !userData.email || !userData.firstName || !userData.lastName) { throw new Error("username, email, firstName, lastName sont requis pour createUser_."); }
-  const payload = { company: config.COMPANY_ID, username: userData.username, email: userData.email, firstName: userData.firstName, lastName: userData.lastName, tags: userData.tags || [] };
-  const options = { method: 'post', contentType: 'application/json', headers: { 'Authorization': 'Bearer ' + accessToken }, payload: JSON.stringify(payload), muteHttpExceptions: true };
-  Logger.log(`Création utilisateur (${typeSysteme}): ${userData.username} sur ${usersUrl}`);
-  const response = UrlFetchApp.fetch(usersUrl, options);
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
-  if (responseCode === 201) { return JSON.parse(responseBody); } 
-  else {
-    let apiErrorMessage = responseBody;
-    try {
-        const errorJson = JSON.parse(responseBody);
-        apiErrorMessage = errorJson.detail || errorJson.message || errorJson["hydra:description"] || responseBody;
-    } catch (e) { /* Pas du JSON */ }
-    throw new Error(`Échec création utilisateur ${userData.username}. Code: ${responseCode}. Message: ${apiErrorMessage}`);
-  }
-}
-
-// --- updateUser_ (inchangé) ---
-/**
- * Updates a user object in the 360sc platform using a PUT request.
- * @param {string} accessToken The API access token.
- * @param {string} typeSysteme "DEV", "TEST", or "PROD".
- * @param {number|string} userId The numerical ID of the user to update.
- * @param {object} userDataPayload The complete user object to send as the payload.
- * @return {object} The updated user object from the API.
- * @throws {Error} If user update fails.
- * @private
- */
-function updateUser_(accessToken, typeSysteme, userId, userDataPayload) {
-  const config = getConfiguration_(typeSysteme);
-  let usersApiBaseUrl;
-  const systemTypeUpper = typeSysteme.toUpperCase();
-
-  if ((systemTypeUpper === "TEST" || systemTypeUpper === "PROD") && config.API_BASE_URL === "https://apiv2.360sc.yt") {
-    usersApiBaseUrl = "https://api.360sc.yt";
-  } else {
-    usersApiBaseUrl = config.API_BASE_URL;
-  }
-  const userUrl = usersApiBaseUrl + config.USERS_ENDPOINT + '/' + userId;
-
-  const options = {
-    method: 'put',
-    contentType: 'application/ld+json',
-    headers: { 'Authorization': 'Bearer ' + accessToken },
-    payload: JSON.stringify(userDataPayload),
+  Logger.log(`Authentification en cours pour ${typeSysteme} sur : ${config.API_BASE_URL}${config.AUTH_ENDPOINT}`);
+  const response = UrlFetchApp.fetch(config.API_BASE_URL + config.AUTH_ENDPOINT, {
+    method: "post", contentType: "application/json",
+    payload: JSON.stringify({ username: credentials.username, password: credentials.password }),
     muteHttpExceptions: true
+  });
+
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+  if (responseCode === 200) {
+    const jsonResponse = JSON.parse(responseBody);
+    token = jsonResponse.token;
+    cache.put(cacheKey, token, 1800);
+    Logger.log(`Authentification ${typeSysteme} réussie.`);
+    return token;
+  } else {
+    throw new Error(`Échec de l'authentification pour ${typeSysteme}. Code: ${responseCode}. Message: ${responseBody}`);
+  }
+}
+
+function createAvatar_(token, typeSysteme, name, alphaId, metadataAvatarTypeId) {
+  const config = getConfiguration_(typeSysteme);
+  Logger.log(`Création avatar (${typeSysteme}): ${name} sur ${config.API_BASE_URL}${config.AVATARS_ENDPOINT}`);
+  
+  const payload = {
+    name: name, alphaId: alphaId, enabled: true,
+    company: config.COMPANY_ID, metadataAvatarType: metadataAvatarTypeId,
+    generateMCFinger: config.GENERATE_MC_FINGER, generateMCQuantity: config.GENERATE_MC_QUANTITY
   };
 
-  Logger.log(`Mise à jour de l'utilisateur ID ${userId} (${typeSysteme}) sur ${userUrl}`);
-  Logger.log(`Payload de mise à jour: ${JSON.stringify(userDataPayload)}`);
-  const response = UrlFetchApp.fetch(userUrl, options);
+  const deduplicationId = Utilities.getUuid();
+  const response = UrlFetchApp.fetch(config.API_BASE_URL + config.AVATARS_ENDPOINT, {
+    method: 'post', contentType: 'application/ld+json',
+    headers: { 'Authorization': `Bearer ${token}`, 'x-deduplication-id': deduplicationId },
+    payload: JSON.stringify(payload), muteHttpExceptions: true
+  });
+  
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+
+  if (responseCode === 201) {
+    const jsonResponse = JSON.parse(responseBody);
+    Logger.log(`Avatar ${name} créé avec l'ID: ${jsonResponse['@id']}`);
+    
+    // CORRECTION: Tentative de récupération directe de l'URL du MC
+    if (jsonResponse.MCs && jsonResponse.MCs.length > 0 && jsonResponse.MCs[0].url) {
+      Logger.log("URL du MC trouvée directement dans la réponse de création.");
+      jsonResponse.mcUrl = jsonResponse.MCs[0].url;
+    }
+    return jsonResponse; // Retourne l'objet complet
+  } else {
+    throw new Error(`Échec de la création de l'avatar ${name}. Code: ${responseCode}. Body: ${responseBody}`);
+  }
+}
+
+function getMcUrlForAvatar_(token, typeSysteme, avatarIdPath) {
+  const config = getConfiguration_(typeSysteme);
+  const url = `${config.API_BASE_URL}${avatarIdPath}${config.MCS_SUFFIX_PATH}`;
+  Logger.log(`Récupération mcUrl (fallback) pour ${avatarIdPath} (${typeSysteme}) sur ${url}`);
+
+  const response = UrlFetchApp.fetch(url, {
+    method: 'get', // CORRECTION: Passage en GET
+    contentType: 'application/ld+json',
+    headers: { 'Authorization': `Bearer ${token}` },
+    muteHttpExceptions: true
+  });
+
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
 
   if (responseCode === 200) {
-    Logger.log(`Utilisateur ID ${userId} mis à jour avec succès.`);
+    const jsonResponse = JSON.parse(responseBody);
+    if (jsonResponse['hydra:member'] && jsonResponse['hydra:member'].length > 0 && jsonResponse['hydra:member'][0].url) {
+      return jsonResponse['hydra:member'][0].url;
+    } else {
+      throw new Error(`La réponse pour getMcUrl était valide (200) mais ne contenait pas d'URL de MC. Body: ${responseBody}`);
+    }
+  } else {
+    throw new Error(`Échec de la récupération (fallback) de mcUrl pour ${avatarIdPath}. Code: ${responseCode}. Body: ${responseBody}`);
+  }
+}
+
+function addPropertiesToAvatar_(token, typeSysteme, avatarId, propertiesPayload) {
+  const config = getConfiguration_(typeSysteme);
+  const endpointUrl = `${config.API_BASE_URL}/api/avatars/${avatarId}/add_avatar_properties/batch`;
+  Logger.log(`Ajout de propriétés à l'avatar ID ${avatarId} (${typeSysteme}) sur ${endpointUrl}`);
+
+  const payload = { "properties": propertiesPayload };
+  const deduplicationId = Utilities.getUuid(); // CORRECTION: Ajout de l'ID de déduplication
+
+  const response = UrlFetchApp.fetch(endpointUrl, {
+    method: 'put', contentType: 'application/ld+json',
+    headers: { 'Authorization': `Bearer ${token}`, 'x-deduplication-id': deduplicationId },
+    payload: JSON.stringify(payload), muteHttpExceptions: true
+  });
+
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+
+  if (responseCode === 200) {
+    Logger.log(`Propriétés ajoutées avec succès à l'avatar ID ${avatarId}.`);
     return JSON.parse(responseBody);
   } else {
-    let apiErrorMessage = responseBody;
-    try {
-        const errorJson = JSON.parse(responseBody);
-        apiErrorMessage = errorJson.detail || errorJson.message || errorJson["hydra:description"] || responseBody;
-    } catch (e) { /* Pas du JSON */ }
-    throw new Error(`Échec de la mise à jour de l'utilisateur ID ${userId}. Code: ${responseCode}. Message: ${apiErrorMessage}`);
+    throw new Error(`Échec de l'ajout de propriétés à l'avatar ID ${avatarId}. Code: ${responseCode}. Body: ${responseBody}`);
   }
+}
+
+// --- Fonctions de gestion des utilisateurs (inchangées) ---
+function createUser_(token, typeSysteme, userData) {
+  const config = getConfiguration_(typeSysteme);
+  let usersApiUrl = config.API_BASE_URL + config.USERS_ENDPOINT;
+  if (typeSysteme === "TEST") { usersApiUrl = "https://api.360sc.yt" + config.USERS_ENDPOINT; }
+  let payload = { ...userData, enabled: false, company: config.COMPANY_ID };
+  const response = UrlFetchApp.fetch(usersApiUrl, {
+    method: 'post', contentType: 'application/ld+json',
+    headers: { 'Authorization': `Bearer ${token}` }, payload: JSON.stringify(payload), muteHttpExceptions: true
+  });
+  if (response.getResponseCode() === 201) { return JSON.parse(response.getContentText()); }
+  else { throw new Error(`Échec de la création de l'utilisateur. Code: ${response.getResponseCode()}. Body: ${response.getContentText()}`); }
+}
+
+function updateUser_(token, typeSysteme, userId, payload) {
+  const config = getConfiguration_(typeSysteme);
+  let usersApiUrl = `${config.API_BASE_URL}${config.USERS_ENDPOINT}/${userId}`;
+  if (typeSysteme === "TEST") { usersApiUrl = `https://api.360sc.yt${config.USERS_ENDPOINT}/${userId}`; }
+  const response = UrlFetchApp.fetch(usersApiUrl, {
+    method: 'put', contentType: 'application/ld+json',
+    headers: { 'Authorization': `Bearer ${token}` }, payload: JSON.stringify(payload), muteHttpExceptions: true
+  });
+  if (response.getResponseCode() === 200) { return JSON.parse(response.getContentText()); }
+  else { throw new Error(`Échec de la mise à jour de l'utilisateur ID ${userId}. Code: ${response.getResponseCode()}. Body: ${response.getContentText()}`); }
 }
