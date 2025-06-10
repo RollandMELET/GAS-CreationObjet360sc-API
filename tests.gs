@@ -1,8 +1,8 @@
 // FILENAME: tests.gs
-// Version: 2.3.0
-// Date: 2025-06-10 21:45
+// Version: 2.5.1
+// Date: 2025-06-10 22:30
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Amélioration de la robustesse des tests. Les fonctions de test lèvent maintenant des erreurs en cas d'échec pour être correctement interceptées par la suite de tests.
+// Description: Version finale et propre. Test d'historique validé et code expérimental retiré.
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
  * du projet, séparées du code de production pour une meilleure organisation.
@@ -69,83 +69,6 @@ function testEndToEnd_PROD() {
 // =============== SUITE DE TESTS POUR DEV & TEST ==================
 // =================================================================
 
-/**
- * Teste l'ajout de propriétés à un avatar OF_ENVELOPPE.
- * Crée un avatar OF_ENVELOPPE temporaire, lui ajoute des propriétés, puis logue le résultat.
- */
-function maFonctionDeTestPourAjouterProprietes() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  const testSystemType = "DEV";
-  
-  try {
-    // Étape 1: Créer un avatar OF_ENVELOPPE temporaire pour le test
-    Logger.log("Étape 1: Création d'un avatar OF_ENVELOPPE temporaire...");
-    const nomObjetTest = "TestOF-AvecProps-" + new Date().getTime();
-    
-    const config = getConfiguration_(testSystemType);
-    const token = getAuthToken_(testSystemType);
-    const metadataAvatarTypeId = config.METADATA_AVATAR_TYPES.OF;
-    
-    const nomEnveloppe = `v0:OF_ENVELOPPE:${nomObjetTest}-ENV`;
-    const createdAvatarObject = createAvatar_(token, testSystemType, nomEnveloppe, "v0:OF_ENVELOPPE", metadataAvatarTypeId);
-    
-    if (!createdAvatarObject || !createdAvatarObject['@id']) {
-      throw new Error("La création de l'avatar de test OF_ENVELOPPE a échoué ou n'a pas retourné d'ID.");
-    }
-
-    const avatarIdPath = createdAvatarObject['@id'];
-    const tempAvatarId = avatarIdPath.split('/').pop();
-    Logger.log(`Avatar de test OF_ENVELOPPE créé avec succès. ID: ${tempAvatarId}`);
-
-    // Étape 2: Ajouter des propriétés à cet avatar
-    Logger.log("Étape 2: Ajout des propriétés à l'avatar de test...");
-    const proprietesAAjouter = {
-      "tipi": "VALEUR_TIPI_TEST",
-      "tfo": "VALEUR_TFO_TEST",
-      "ladac": "VALEUR_LADAC_TEST",
-      "tab": "VALEUR_TAB_TEST_12345"
-    };
-
-    const ajoutResultString = ajouterProprietesAvatar360sc(testSystemType, tempAvatarId, proprietesAAjouter);
-    const ajoutResult = JSON.parse(ajoutResultString);
-
-    if (ajoutResult.success) {
-      Logger.log("✅ SUCCÈS: La fonction d'ajout de propriétés a terminé avec succès.");
-      Logger.log("Réponse complète: " + ajoutResultString);
-    } else {
-      throw new Error("La fonction d'ajout de propriétés a échoué. Erreur: " + ajoutResult.error);
-    }
-
-  } catch (e) {
-    Logger.log(`❌ ÉCHEC CRITIQUE du test: ${e.message}`);
-    Logger.log("Stack: " + (e.stack || 'N/A'));
-    throw e; // Propage l'erreur
-  }
-}
-
-/**
- * Teste la création d'une structure OF complète en ajoutant des propriétés à l'objet ELEC.
- */
-function maFonctionDeTestPourCreerMultiplesAvecProprietes() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  const testSystemType = "DEV";
-  const testNomDeObjetBase = "MonOF-AvecPropsElec-" + new Date().getTime();
-  const proprietesPourElec = { "tipi": "VALEUR_TIPI_TEST_ELEC", "tfo": "VALEUR_TFO_TEST_ELEC", "ladac": "VALEUR_LADAC_TEST_ELEC", "tab": "VALEUR_TAB_TEST_ELEC_67890" };
-  
-  Logger.log(`Test de création multiple pour '${testNomDeObjetBase}' avec les propriétés ELEC : ${JSON.stringify(proprietesPourElec)}`);
-  
-  const resultatString = creerMultiplesObjets360sc(testNomDeObjetBase, testSystemType, "OF", proprietesPourElec);
-  const resultat = JSON.parse(resultatString);
-  
-  if (resultat.success) {
-    Logger.log("✅ SUCCÈS: La création multiple avec propriétés a réussi.");
-    Logger.log("Résultat complet: " + resultatString);
-  } else {
-    Logger.log(`❌ ÉCHEC: La création multiple avec propriétés a échoué. Erreur: ${resultat.error}`);
-    throw new Error("Le test de création multiple avec propriétés a échoué: " + resultat.error);
-  }
-}
-
 function testSuiteComplete() {
     Logger.log("======================================================");
     Logger.log("Lancement de la SUITE DE TESTS COMPLÈTE (DEV & TEST)");
@@ -154,8 +77,9 @@ function testSuiteComplete() {
       { name: "Scénario 1: Création d'une structure OF complète (sur DEV)", func: maFonctionDeTestPourCreerMultiples_SUCCES },
       { name: "Scénario 2: Création d'une structure OF avec propriétés ELEC (sur DEV)", func: maFonctionDeTestPourCreerMultiplesAvecProprietes },
       { name: "Scénario 3: Création d'un Avatar unique (Moule) (sur DEV)", func: maFonctionDeTestPourCreerObjetUnique },
-      { name: "Scénario 4: Cycle de vie complet d'un utilisateur (Créer -> Activer -> Désactiver) (sur TEST)", func: maFonctionDeTestPourDesactiverUtilisateur },
-      { name: "Scénario 5: Activation d'un utilisateur par profil (sur TEST)", func: maFonctionDeTestPourActiverUtilisateurParProfil }
+      { name: "Scénario 4: Récupération de l'historique d'un objet (sur TEST)", func: maFonctionDeTestPourRecupererHistorique },
+      { name: "Scénario 5: Cycle de vie complet d'un utilisateur (Créer -> Activer -> Désactiver) (sur TEST)", func: maFonctionDeTestPourDesactiverUtilisateur },
+      { name: "Scénario 6: Activation d'un utilisateur par profil (sur TEST)", func: maFonctionDeTestPourActiverUtilisateurParProfil }
     ];
     testsToRun.forEach((test, index) => {
         Logger.log(`\n--- DÉBUT TEST ${index + 1}/${testsToRun.length}: ${test.name} ---\n`);
@@ -173,6 +97,42 @@ function testSuiteComplete() {
     Logger.log("======================================================");
 }
 
+
+/**
+ * Teste la récupération de l'historique d'un objet sur le serveur V1.
+ * Crée un objet, récupère son ID, puis appelle la fonction d'historique.
+ */
+function maFonctionDeTestPourRecupererHistorique() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  const testSystemType = "TEST"; 
+
+  const nomObjetTest = "TestHistoV1-" + new Date().getTime();
+  const creationResultString = creerObjetUnique360sc(nomObjetTest, testSystemType, "MOULE", "Autre");
+  const creationResult = JSON.parse(creationResultString);
+
+  if (!creationResult.success || !creationResult.avatarApiIdPath) {
+    throw new Error("Étape 1 (Création objet) a échoué. Erreur: " + creationResult.error);
+  }
+
+  const avatarId = creationResult.avatarApiIdPath.split('/').pop();
+  Logger.log(`Objet de test créé avec l'ID: ${avatarId}.`);
+
+  // On appelle la fonction de haut niveau pour un test d'intégration complet
+  const historiqueResultString = getHistoriqueObjet360sc(testSystemType, avatarId);
+  const historiqueResult = JSON.parse(historiqueResultString);
+
+  if (!historiqueResult.success) {
+    throw new Error("Étape 2 (Récupération historique) a échoué. Erreur: " + historiqueResult.error);
+  }
+  
+  if (!Array.isArray(historiqueResult.data) || historiqueResult.data.length === 0) {
+    throw new Error("Étape 2 (Validation) a échoué: L'historique retourné n'est pas un tableau ou est vide.");
+  }
+
+  Logger.log("✅ SUCCÈS: La fonction getHistoriqueObjet360sc a retourné un résultat valide.");
+  Logger.log(`Nombre d'entrées trouvées: ${historiqueResult.data.length}.`);
+}
+
 function maFonctionDeTestPourCreerMultiples_SUCCES() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   var testSystemType = "DEV";
@@ -183,6 +143,26 @@ function maFonctionDeTestPourCreerMultiples_SUCCES() {
       throw new Error("Le test maFonctionDeTestPourCreerMultiples_SUCCES a échoué: " + resultat.error);
   }
   Logger.log("Résultat de creerMultiplesObjets360sc (SUCCES - chaîne JSON): " + resultatString);
+}
+
+function maFonctionDeTestPourCreerMultiplesAvecProprietes() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  const testSystemType = "DEV";
+  const testNomDeObjetBase = "MonOF-AvecPropsElec-" + new Date().getTime();
+  const proprietesPourElec = { "tipi": "VALEUR_TIPI_TEST_ELEC", "tfo": "VALEUR_TFO_TEST_ELEC", "ladac": "VALEUR_LADAC_TEST_ELEC", "tab": "VALEUR_TAB_TEST_ELEC_67890" };
+  
+  Logger.log(`Test de création multiple pour '${testNomDeObjetBase}' avec les propriétés ELEC : ${JSON.stringify(proprietesPourElec)}`);
+  
+  const resultatString = creerMultiplesObjets360sc(testNomDeObjetBase, testSystemType, "OF", JSON.stringify(proprietesPourElec));
+  const resultat = JSON.parse(resultatString);
+  
+  if (resultat.success) {
+    Logger.log("✅ SUCCÈS: La création multiple avec propriétés a réussi.");
+    Logger.log("Résultat complet: " + resultatString);
+  } else {
+    Logger.log(`❌ ÉCHEC: La création multiple avec propriétés a échoué. Erreur: ${resultat.error}`);
+    throw new Error("Le test de création multiple avec propriétés a échoué: " + resultat.error);
+  }
 }
 
 function maFonctionDeTestPourCreerObjetUnique() {
@@ -263,6 +243,7 @@ function maFonctionDeTestPourActiverUtilisateurParProfil() {
   Logger.log(`Résultat du wrapper pour profil inexistant (devrait être une erreur): ${resultatWrapper3}`);
 }
 
+
 // =================================================================
 // ===== FONCTIONS DE TEST INDIVIDUELLES (non incluses dans la suite) ======
 // =================================================================
@@ -290,7 +271,6 @@ function maFonctionDeTestPourCreerUtilisateurEtRecupererId() {
   Logger.log(`Résultat du test (devrait être un ID numérique ou ERREUR): ${resultatId}`);
 }
 
-// ... et les autres fonctions de test individuelles ...
 
 // =================================================================
 // ===== FONCTIONS DE TEST BAS NIVEAU (appelées par d'autres tests) ======

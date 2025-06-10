@@ -74,9 +74,9 @@ const ENV_CONFIG = {
     GENERATE_MC_FINGER: "/api/fingers/684469bdb1ea0",
     METADATA_AVATAR_TYPES: {
       // Pour l'instant, on utilise le même ID pour les 3 types en PROD, comme demandé.
-      OF_PRINCIPAL: "/api/metadata_avatar_types/684469d19d051", // Placeholder
-      OF_ELEC: "/api/metadata_avatar_types/684469d19d051",      // Placeholder
-      OF_COMPOSANT: "/api/metadata_avatar_types/684469d19d051", // Placeholder
+      OF_PRINCIPAL: "/api/metadata_avatar_types/684469d19d051", 
+      OF_ELEC: "/api/metadata_avatar_types/68488d1af19e8",      // Placeholder
+      OF_COMPOSANT: "/api/metadata_avatar_types/68488cd628176", // Placeholder
       MOULE: "/api/metadata_avatar_types/684469e053ba5",
       DEFAULT: "/api/metadata_avatar_types/684469d19d051"
     }

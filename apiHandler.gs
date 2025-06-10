@@ -1,32 +1,24 @@
 // FILENAME: apiHandler.gs
-// Version: 2.5.0
-// Date: 2025-06-10 12:05
+// Version: 2.6.1
+// Date: 2025-06-10 22:30
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Correction finale de l'architecture. L'authentification est rétablie sur le serveur V2 principal (API_BASE_URL), le token étant universel.
+// Description: Version finale et propre. Cible l'API d'historique sur le serveur V1, comme validé par les tests.
+
 /**
  * @fileoverview Fonctions de bas niveau pour les appels à l'API 360sc.
  */
 
+// ... (toutes les fonctions jusqu'à updateUser_) ...
 function getAuthToken_(typeSysteme) {
   const config = getConfiguration_(typeSysteme);
-  // CORRECTION FINALE: L'authentification doit TOUJOURS se faire sur le serveur principal (V2).
-  // Le token généré est ensuite valide sur tous les serveurs (V1 et V2).
   const authBaseUrl = config.API_BASE_URL; 
-  
   const credentials = getApiCredentials_(typeSysteme);
   const cache = CacheService.getScriptCache();
   const cacheKey = `API_TOKEN_${typeSysteme}`;
-  
   let token = cache.get(cacheKey);
   if (token) { return token; }
-
   Logger.log(`Authentification en cours pour ${typeSysteme} sur : ${authBaseUrl}${config.AUTH_ENDPOINT}`);
-  const response = UrlFetchApp.fetch(authBaseUrl + config.AUTH_ENDPOINT, {
-    method: "post", contentType: "application/json",
-    payload: JSON.stringify({ username: credentials.username, password: credentials.password }),
-    muteHttpExceptions: true
-  });
-
+  const response = UrlFetchApp.fetch(authBaseUrl + config.AUTH_ENDPOINT, { method: "post", contentType: "application/json", payload: JSON.stringify({ username: credentials.username, password: credentials.password }), muteHttpExceptions: true });
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
   if (responseCode === 200) {
@@ -48,11 +40,7 @@ function createAvatar_(token, typeSysteme, name, alphaId, metadataAvatarTypeId) 
     generateMCFinger: config.GENERATE_MC_FINGER, generateMCQuantity: config.GENERATE_MC_QUANTITY
   };
   const deduplicationId = Utilities.getUuid();
-  const response = UrlFetchApp.fetch(config.API_BASE_URL + config.AVATARS_ENDPOINT, {
-    method: 'post', contentType: 'application/ld+json',
-    headers: { 'Authorization': `Bearer ${token}`, 'x-deduplication-id': deduplicationId },
-    payload: JSON.stringify(payload), muteHttpExceptions: true
-  });
+  const response = UrlFetchApp.fetch(config.API_BASE_URL + config.AVATARS_ENDPOINT, { method: 'post', contentType: 'application/ld+json', headers: { 'Authorization': `Bearer ${token}`, 'x-deduplication-id': deduplicationId }, payload: JSON.stringify(payload), muteHttpExceptions: true });
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
   if (responseCode === 201) {
@@ -87,11 +75,7 @@ function addPropertiesToAvatar_(token, typeSysteme, avatarId, propertiesPayload)
   Logger.log(`Ajout de propriétés à l'avatar ID ${avatarId} (${typeSysteme}) sur ${endpointUrl}`);
   const payload = { "properties": propertiesPayload };
   const deduplicationId = Utilities.getUuid();
-  const response = UrlFetchApp.fetch(endpointUrl, {
-    method: 'put', contentType: 'application/ld+json',
-    headers: { 'Authorization': `Bearer ${token}`, 'x-deduplication-id': deduplicationId },
-    payload: JSON.stringify(payload), muteHttpExceptions: true
-  });
+  const response = UrlFetchApp.fetch(endpointUrl, { method: 'put', contentType: 'application/ld+json', headers: { 'Authorization': `Bearer ${token}`, 'x-deduplication-id': deduplicationId }, payload: JSON.stringify(payload), muteHttpExceptions: true });
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
   if (responseCode === 200) { return JSON.parse(responseBody); }
@@ -103,9 +87,7 @@ function findUserByEmail_(token, typeSysteme, email) {
   const encodedEmail = encodeURIComponent(email);
   const searchUrl = `${config.USERS_API_BASE_URL}${config.USERS_ENDPOINT_V1}?email=${encodedEmail}`;
   Logger.log(`Recherche de l'utilisateur par email (${typeSysteme}) sur: ${searchUrl}`);
-  const response = UrlFetchApp.fetch(searchUrl, {
-    method: 'get', headers: { 'Authorization': `Bearer ${token}` }, muteHttpExceptions: true
-  });
+  const response = UrlFetchApp.fetch(searchUrl, { method: 'get', headers: { 'Authorization': `Bearer ${token}` }, muteHttpExceptions: true });
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
   if (responseCode === 200) {
@@ -123,10 +105,7 @@ function createUser_(token, typeSysteme, userData) {
   const config = getConfiguration_(typeSysteme);
   const endpointUrl = `${config.USERS_API_BASE_URL}${config.USERS_ENDPOINT_V2}`;
   Logger.log(`Appel API pour création user sur: ${endpointUrl}`);
-  const response = UrlFetchApp.fetch(endpointUrl, {
-    method: 'post', contentType: 'application/json', headers: { 'Authorization': `Bearer ${token}` },
-    payload: JSON.stringify(userData), muteHttpExceptions: true
-  });
+  const response = UrlFetchApp.fetch(endpointUrl, { method: 'post', contentType: 'application/json', headers: { 'Authorization': `Bearer ${token}` }, payload: JSON.stringify(userData), muteHttpExceptions: true });
   const responseCode = response.getResponseCode();
   if (responseCode !== 201) { throw new Error(`Erreur lors de l'appel POST de création. Code: ${responseCode}. Body: ${response.getContentText()}`); }
 }
@@ -136,12 +115,40 @@ function updateUser_(token, typeSysteme, userId, payload) {
   const endpointUrl = `${config.USERS_API_BASE_URL}${config.USERS_ENDPOINT_V2}/${userId}`;
   Logger.log(`Appel API pour mise à jour user sur: ${endpointUrl}`);
   delete payload.id;
-  const response = UrlFetchApp.fetch(endpointUrl, {
-    method: 'put', contentType: 'application/json', headers: { 'Authorization': `Bearer ${token}` },
-    payload: JSON.stringify(payload), muteHttpExceptions: true
-  });
+  const response = UrlFetchApp.fetch(endpointUrl, { method: 'put', contentType: 'application/json', headers: { 'Authorization': `Bearer ${token}` }, payload: JSON.stringify(payload), muteHttpExceptions: true });
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
   if (responseCode === 200) { return JSON.parse(responseBody); }
   throw new Error(`Erreur lors de la mise à jour de l'utilisateur. Code: ${responseCode}. Body: ${responseBody}`);
+}
+
+/**
+ * Récupère les entrées d'historique pour un itemId spécifique (ID d'avatar).
+ * @param {string} token Le token d'authentification.
+ * @param {string} typeSysteme L'environnement (DEV, TEST, PROD).
+ * @param {string} itemId L'ID de l'avatar dont on veut l'historique.
+ * @returns {Array} Un tableau d'objets représentant l'historique.
+ */
+function getHistoryForItem_(token, typeSysteme, itemId) {
+  const config = getConfiguration_(typeSysteme);
+  // Cible l'API V1 (USERS_API_BASE_URL) comme validé par les tests
+  const endpointUrl = `${config.USERS_API_BASE_URL}/api/histories?itemId=${itemId}`;
+  Logger.log(`Récupération de l'historique pour l'item ID ${itemId} sur ${endpointUrl}`);
+  
+  const response = UrlFetchApp.fetch(endpointUrl, {
+    method: 'get',
+    headers: { 'Authorization': `Bearer ${token}` },
+    muteHttpExceptions: true
+  });
+
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+
+  if (responseCode === 200) {
+    const jsonResponse = JSON.parse(responseBody);
+    Logger.log(`Trouvé ${jsonResponse['hydra:totalItems']} entrée(s) d'historique.`);
+    return jsonResponse['hydra:member'] || [];
+  }
+  
+  throw new Error(`Échec de la récupération de l'historique pour l'item ${itemId}. Code: ${responseCode}. Body: ${responseBody}`);
 }

@@ -1,11 +1,11 @@
 // FILENAME: Code.gs
-// Version: 1.24.0
-// Date: 2025-06-10 11:50
+// Version: 1.25.0
+// Date: 2025-06-10 21:55
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Adapte creerMultiplesObjets360sc pour utiliser getObjectDefinitions_ et assigner le metadataId spécifique à chaque sous-objet.
+// Description: Ajout de la nouvelle fonction getHistoriqueObjet360sc pour récupérer l'historique d'un avatar.
 /**
  * @fileoverview Fichier principal contenant les fonctions exposées et appelables par des services externes comme AppSheet.
- * Ce fichier se concentre sur la création d'objets (Avatars). La logique de gestion des utilisateurs est dans `users.gs`.
+ * Ce fichier se concentre sur la gestion des objets (Avatars). La logique des utilisateurs est dans `users.gs`.
  */
 
 function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, proprietesElec) {
@@ -16,7 +16,6 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, propr
     const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "OF";
     if (typeObjetUpper !== 'OF') { throw new Error("Usage incorrect: 'creerMultiplesObjets360sc' est réservé à 'OF'."); }
 
-    // CHANGEMENT: On récupère les définitions dynamiquement en fonction de l'environnement
     const objectDefinitions = getObjectDefinitions_(systemTypeUpper);
     
     let parsedProperties = null;
@@ -36,7 +35,6 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, propr
     const token = getAuthToken_(systemTypeUpper);
     
     for (const objDef of objectDefinitions) {
-      // CHANGEMENT: L'ID de métadonnée est maintenant spécifique à chaque objDef
       const metadataAvatarTypeId = objDef.metadataId;
       if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) {
         throw new Error(`Metadata ID non configuré pour '${objDef.key}' dans l'environnement ${systemTypeUpper}.`);
@@ -80,7 +78,6 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, propr
   return JSON.stringify(finalOutput);
 }
 
-// ... Les fonctions creerObjetUnique360sc, etc. restent inchangées ...
 function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, typeMoule) {
   let finalOutput = { success: false, message: "" };
   try {
@@ -115,6 +112,42 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, typeMoule
     finalOutput.error = error.message;
     finalOutput.details_stack = error.stack ? error.stack.substring(0, 500) : 'N/A';
     Logger.log(`Erreur creerObjetUnique360sc: ${finalOutput.error}`);
+  }
+  return JSON.stringify(finalOutput);
+}
+
+/**
+ * NOUVELLE FONCTION
+ * Récupère l'historique d'un objet (Avatar) en utilisant son ID.
+ * @param {string} typeSysteme - L'environnement (DEV, TEST, PROD).
+ * @param {string} avatarId - L'ID de l'avatar. Peut être l'ID complet (/api/avatars/xxxx) ou juste le UUID (xxxx).
+ * @returns {string} Une chaîne JSON contenant le statut (success) et l'historique (data).
+ */
+function getHistoriqueObjet360sc(typeSysteme, avatarId) {
+  let finalOutput = { success: false, message: "", data: null };
+  try {
+    if (!typeSysteme || !avatarId) {
+      throw new Error("Les paramètres 'typeSysteme' et 'avatarId' sont requis.");
+    }
+    
+    // Rend la fonction robuste : accepte l'ID complet ou juste le UUID
+    const itemId = avatarId.includes('/') ? avatarId.split('/').pop() : avatarId;
+    const systemTypeUpper = typeSysteme.toUpperCase();
+    Logger.log(`Demande d'historique pour l'avatar ID ${itemId}, système: ${systemTypeUpper}`);
+    
+    const token = getAuthToken_(systemTypeUpper);
+    const historyData = getHistoryForItem_(token, systemTypeUpper, itemId);
+    
+    finalOutput.success = true;
+    finalOutput.message = `Historique récupéré avec succès pour l'avatar ID ${itemId}.`;
+    finalOutput.data = historyData;
+
+  } catch (error) {
+    finalOutput.success = false;
+    finalOutput.message = `Erreur lors de la récupération de l'historique pour l'avatar ID ${avatarId}.`;
+    finalOutput.error = error.message;
+    finalOutput.details_stack = error.stack ? error.stack.substring(0, 500) : 'N/A';
+    Logger.log(`Erreur getHistoriqueObjet360sc: ${finalOutput.error}`);
   }
   return JSON.stringify(finalOutput);
 }

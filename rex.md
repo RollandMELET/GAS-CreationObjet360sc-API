@@ -72,3 +72,12 @@
 *   **Impact:** Toutes les tentatives d'appel sur un seul serveur étaient vouées à l'échec. La compréhension de cette architecture était la clé du déblocage.
 *   **Solution Appliquée:** 1. Le fichier `config.gs` a été enrichi pour contenir `API_BASE_URL` (V2) et `USERS_API_BASE_URL` (V1). 2. Les fonctions dans `apiHandler.gs` ont été mises à jour pour utiliser la bonne URL de base en fonction de l'opération. 3. La fonction d'authentification `getAuthToken_` a été fixée pour toujours s'exécuter sur le serveur V2 afin de générer le token universel.
 *   **Leçons Apprises:** 1. Face à des erreurs persistantes et illogiques, envisager des hypothèses "hors du cadre", comme une architecture multi-domaines. 2. Une configuration centralisée et explicite (`config.gs`) est vitale pour gérer ce genre de complexité.
+
+---
+
+## REX Item 9: Comportement et Permissions de l'API d'Historique
+*   **Problème:** Sur quel serveur (V1 ou V2) et avec quelles permissions l'endpoint `/api/histories` est-il accessible ?
+*   **Description:** Des tests croisés ont été menés pour déterminer le comportement de l'API d'historique. Un appel depuis Apps Script (avec un token de compte de service) vers le serveur V2 a retourné une erreur `403 Forbidden` ("ROLE_READ_HISTORY" manquant). Un appel `curl` (avec un token d'utilisateur) vers ce même serveur V2 a réussi. Enfin, un appel depuis Apps Script vers le serveur V1 a réussi.
+*   **Impact:** La simple présence d'un endpoint dans la documentation ne garantit pas son accessibilité pour un compte de service.
+*   **Solution:** L'implémentation a été fixée pour cibler **uniquement le serveur V1 (`api.360sc.yt`)**, qui est accessible avec les permissions du compte de service du script.
+*   **Leçons Apprises:** 1. L'endpoint `/api/histories` existe sur les deux serveurs mais avec des ACLs (droits d'accès) différentes. Le serveur V2 requiert des droits spécifiques que seul un utilisateur interactif semble posséder. 2. La solution la plus robuste pour un script autonome est de cibler le point d'accès qui fonctionne avec les permissions les plus basiques garanties (ici, le serveur V1).
