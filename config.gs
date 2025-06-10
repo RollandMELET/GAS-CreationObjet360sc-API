@@ -57,7 +57,7 @@ const ENV_CONFIG = {
     API_BASE_URL: "https://apiv2.360sc.yt", 
     USERS_API_BASE_URL: "https://api.360sc.yt",
     COMPANY_ID: "/api/companies/683fff330baf4",
-    GENERATE_MC_FINGER: "/api/fingers/6364149b51f85",
+    GENERATE_MC_FINGER: "/api/fingers/684469bdb1ea0",
     METADATA_AVATAR_TYPES: {
       // IDs spécifiques pour l'environnement de TEST
       OF_PRINCIPAL: "/api/metadata_avatar_types/6840002e05ac2",
