@@ -1,25 +1,27 @@
 # FILENAME: README.md
-# Version: 1.8.0
-# Date: 2025-06-08 16:30
+# Version: 1.9.0
+# Date: 2025-06-10 12:05
 # Author: Rolland MELET (Collaboratively with AI Senior Coder)
-# Description: Mise à jour majeure pour refléter le refactoring de la gestion utilisateur dans users.gs et clarifier la structure du projet.
+# Description: Documentation majeure des nouvelles fonctionnalités, de la configuration avancée et de l'intégration avec AppSheet.
 
 # GAS-CreationObjet360sc-API
 
-Ce projet Google Apps Script a pour objectif d'interagir avec l'API de la plateforme 360SmartConnect. Il fournit des fonctions pour le cycle de vie complet des objets "Avatar" (OF, Moules) et des Utilisateurs.
+Ce projet Google Apps Script a pour objectif d'interagir avec l'API de la plateforme 360SmartConnect. Il fournit des fonctions pour le cycle de vie complet des objets "Avatar" (OF, Moules) et des Utilisateurs, avec une gestion avancée des environnements et une intégration poussée avec AppSheet.
 
-## Fonctionnalités
+## Fonctionnalités Clés
 
-*   Authentification sécurisée auprès de l'API 360SmartConnect.
-*   **Gestion des Avatars :**
-    *   Création **spécialisée** de structures d'objets complexes (ex: OF).
+*   **Authentification Sécurisée :** Gère les tokens d'API et leur mise en cache pour plusieurs environnements (DEV, TEST, PROD).
+*   **Architecture API Complexe :** Le script est conçu pour gérer une architecture API multi-serveurs (V1 pour les Utilisateurs, V2 pour les Avatars) avec un token d'authentification universel.
+*   **Gestion Avancée des Avatars :**
+    *   Création **spécialisée** de structures d'objets OF complexes, avec assignation d'un type de métadonnée (`metadataAvatarType`) **spécifique à chaque sous-objet** (Principal, Elec, Composants).
     *   Création **générique** d'objets uniques (ex: Moule).
-*   **Gestion des Utilisateurs :**
+    *   **Ajout de propriétés dynamiques** à la création, notamment pour l'objet OF-ELEC.
+*   **Gestion Complète des Utilisateurs :**
     *   Cycle de vie complet : Créer, Activer (avec attribution de rôles via un mapping de profils), et Désactiver.
 *   **Intégration et Environnement :**
-    *   Gestion des environnements DEV, TEST et PROD.
-    *   Wrappers de fonctions simplifiés pour une intégration facile avec AppSheet.
-    *   Suite de tests complète pour valider chaque fonctionnalité.
+    *   Configuration centralisée et claire pour les environnements DEV, TEST et PROD.
+    *   **Wrappers de fonctions optimisés pour AppSheet**, y compris la gestion de paramètres complexes via des chaînes JSON.
+    *   Suite de tests complète et robuste pour valider chaque fonctionnalité.
 
 ## Installation et Déploiement
 
@@ -40,14 +42,45 @@ Ce projet Google Apps Script a pour objectif d'interagir avec l'API de la platef
     clasp push
     ```
 
+## Intégration avec AppSheet
+
+Pour appeler les fonctions de ce script depuis AppSheet, assurez-vous de configurer correctement l'appel dans vos Actions ou Bots.
+
+### Passer des Paramètres Complexes (Ex: Propriétés pour OF-ELEC)
+
+AppSheet ne peut passer que du texte. Pour envoyer des données structurées (comme un objet JSON), vous devez construire la chaîne de caractères JSON dans une formule AppSheet.
+
+**Exemple :** Pour passer les propriétés `tipi`, `tfo`, `ladac`, et `tab` à la fonction `creerMultiplesObjets360sc`, utilisez la formule suivante dans AppSheet pour le 4ème paramètre (`proprietesElec`) :
+Use code with caution.
+Markdown
+CONCATENATE(
+"{",
+LEFT(
+(
+IF(ISNOTBLANK([VotreColonneTipi]), CONCATENATE("""tipi"":""", SUBSTITUTE([VotreColonneTipi], """", """"), ""","), "") &
+IF(ISNOTBLANK([VotreColonneTfo]), CONCATENATE("""tfo"":""", SUBSTITUTE([VotreColonneTfo], """", """"), ""","), "") &
+IF(ISNOTBLANK([VotreColonneLadac]), CONCATENATE("""ladac"":""", SUBSTITUTE([VotreColonneLadac], """", """"), ""","), "") &
+IF(ISNOTBLANK([VotreColonneTab]), CONCATENATE("""tab"":""", SUBSTITUTE([VotreColonneTab], """", """"), ""","), "")
+),
+MAX(LIST(0, LEN(
+IF(ISNOTBLANK([VotreColonneTipi]), CONCATENATE("""tipi"":""", SUBSTITUTE([VotreColonneTipi], """", """"), ""","), "") &
+IF(ISNOTBLANK([VotreColonneTfo]), CONCATENATE("""tfo"":""", SUBSTITUTE([VotreColonneTfo], """", """"), ""","), "") &
+IF(ISNOTBLANK([VotreColonneLadac]), CONCATENATE("""ladac"":""", SUBSTITUTE([VotreColonneLadac], """", """"), ""","), "") &
+IF(ISNOTBLANK([VotreColonneTab]), CONCATENATE("""tab"":""", SUBSTITUTE([VotreColonneTab], """", """"), ""","), "")
+) - 1))
+),
+"}"
+)
+*Cette formule robuste gère les champs vides et "échappe" les guillemets pour éviter les erreurs.*
+
 ## Structure des Fichiers et Rôles
 
-*   `appsscript.json`: **Manifest du projet.** Définit les paramètres essentiels comme la timezone et la version du runtime.
-*   `config.gs`: **Configuration centrale.** Contient les URLs, les IDs spécifiques à chaque environnement, et les mappings de rôles.
-*   `utils.gs`: **Fonctions utilitaires.** Gère le cache et l'accès sécurisé aux identifiants via `PropertiesService`.
-*   `apiHandler.gs`: **Couche de communication API.** Gère l'authentification et l'envoi des requêtes (`UrlFetchApp`).
-*   `users.gs`: **Module de gestion des utilisateurs.** Contient toute la logique métier et les wrappers pour le cycle de vie des utilisateurs.
-*   `Code.gs`: **Module de gestion des Avatars.** Contient les fonctions principales pour la création d'objets (OF, Moules) et leurs wrappers.
+*   `appsscript.json`: **Manifest du projet.**
+*   `config.gs`: **Configuration centrale.** Contient les URLs (V1 et V2), les IDs spécifiques à chaque environnement, et les mappings de rôles. C'est le premier fichier à modifier pour configurer un nouvel environnement.
+*   `utils.gs`: **Fonctions utilitaires.** Gère l'accès sécurisé aux identifiants via `PropertiesService`.
+*   `apiHandler.gs`: **Couche de communication API.** Gère l'authentification et l'envoi des requêtes (`UrlFetchApp`) aux bons serveurs.
+*   `users.gs`: **Module de gestion des utilisateurs.** Contient toute la logique métier et les wrappers pour le cycle de vie des utilisateurs (API V1).
+*   `Code.gs`: **Module de gestion des Avatars.** Contient les fonctions principales pour la création d'objets (OF, Moules) et leurs wrappers (API V2).
 *   `tests.gs`: **Suite de tests.** Contient toutes les fonctions de test et la fonction maîtresse `testSuiteComplete()` pour la validation post-déploiement.
 *   `rex.md`: **Retour d'Expérience.** Documente les problèmes, solutions et leçons apprises.
 
@@ -58,9 +91,4 @@ Ce projet Google Apps Script a pour objectif d'interagir avec l'API de la platef
 3.  Ouvrez le projet dans l'éditeur en ligne : `clasp open`.
 4.  Dans l'éditeur, sélectionnez la fonction `testSuiteComplete` et cliquez sur **Exécuter**.
 5.  Consultez les journaux (`Afficher > Journaux`) pour valider que tous les tests passent.
-6.  Une fois satisfait, commitez et poussez sur GitHub avec un message descriptif :
-    ```bash
-    git add .
-    git commit -m "Refactor: Extract user management logic into users.gs" -m "Moved all user-related functions from Code.gs to a new dedicated users.gs module to improve separation of concerns. Updated appsscript.json to the modern V8 format."
-    git push origin main
-    ```
+6.  Une fois satisfait, commitez et poussez sur GitHub avec un message descriptif.

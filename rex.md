@@ -1,8 +1,9 @@
 # FILENAME: rex.md
-# Version: 1.3.0
-# Date: 2025-06-10 21:30
+# Version: 1.4.0
+# Date: 2025-06-10 12:05
 # Author: Rolland MELET (Collaboratively with AI Senior Coder)
-# Description: Ajout du REX-007 sur la validation des réponses API et la robustesse des tests.
+# Description: Ajout du REX-008 sur l'architecture API multi-serveurs et le token universel.
+
 # Rapport de Retour d'Expérience (REX) - Projet GAS-CreationObjet360sc-API
 
 ## REX Item 1: Spécificité des configurations par environnement
@@ -46,38 +47,28 @@
 ---
 
 ## REX Item 6: Erreurs de Validation du Manifest `appsscript.json`
-*   **Problème:**
-    Échecs successifs du déploiement via `clasp push` à cause d'un fichier `appsscript.json` invalide.
-*   **Description:**
-    Après le refactoring pour créer `users.gs`, le déploiement a échoué pour deux raisons :
-    1.  **Erreur 1:** `Comments are not allowed in the script manifest file(s)`. L'ajout d'un en-tête de versioning en commentaire (`//`) a invalidé le fichier JSON.
-    2.  **Erreur 2:** `Invalid manifest: unknown fields: [fileOrder]`. L'utilisation de la clé `fileOrder` est dépréciée et invalide pour les projets utilisant le runtime V8.
-*   **Impact:**
-    Bloquage complet du déploiement (`clasp push`), empêchant la validation du refactoring et interrompant le cycle de développement.
-*   **Solution Appliquée:**
-    La structure du fichier `appsscript.json` a été corrigée pour être conforme au standard JSON et au schéma de manifest moderne de Google Apps Script V8 en supprimant tous les commentaires et la clé `fileOrder` obsolète.
-*   **Leçons Apprises:**
-    1.  **Stricte conformité JSON :** Les fichiers `.json` ne doivent **jamais** contenir de commentaires.
-    2.  **Spécificité du Runtime V8 :** La clé `fileOrder` est obsolète et ne doit plus être utilisée. Le runtime gère les dépendances implicitement. Toujours se référer à la documentation la plus récente.
-    3.  **Validation précoce :** Utiliser un linter JSON dans VSCode peut permettre de détecter ces erreurs de syntaxe avant même la tentative de déploiement.
+*   **Problème:** Échecs successifs du déploiement via `clasp push` à cause d'un fichier `appsscript.json` invalide.
+*   **Description:** L'ajout d'un en-tête de versioning en commentaire (`//`) ou l'utilisation de la clé dépréciée `fileOrder` a invalidé le fichier JSON pour le runtime V8.
+*   **Solution Appliquée:** Correction du fichier `appsscript.json` pour être conforme au standard JSON strict (pas de commentaires) et au schéma V8 (pas de `fileOrder`).
+*   **Leçons Apprises:** 1. Les fichiers `.json` doivent être stricts (pas de commentaires). 2. Toujours se référer à la documentation la plus récente du runtime (V8).
 
 ---
-
-
 
 ## REX Item 7: Validation des Réponses API et Robustesse des Tests
-*   **Problème:**
-    L'API de création d'utilisateurs sur l'environnement de TEST retournait un statut de succès (HTTP 201) mais avec un corps de réponse vide, causant des erreurs `TypeError` imprévues plus loin dans le code. De plus, la suite de tests ne rapportait pas ces erreurs correctement.
-*   **Description:**
-    1.  La fonction `creerUtilisateur360sc` faisait confiance au code de statut HTTP 201 et ne validait pas que le corps de la réponse contenait bien un objet utilisateur valide.
-    2.  Les fonctions de test interceptaient les erreurs et les affichaient dans les logs, mais ne les propageaient pas (`throw`), ce qui faisait que la suite de tests `testSuiteComplete` les considérait à tort comme des succès.
-*   **Impact:**
-    Un bug latent dans le code de production et une suite de tests non fiable qui masquait les problèmes réels.
-*   **Solution Appliquée:**
-    1.  **Code de production (`users.gs`):** Ajout d'une validation explicite pour s'assurer que la réponse de l'API de création d'utilisateur contient bien un objet avec un `id` avant de retourner un succès.
-    2.  **Code de test (`tests.gs`):** Modification des fonctions de test pour qu'elles lèvent (`throw`) une `Error` en cas de condition d'échec. Cela permet au `try...catch` de `testSuiteComplete` de les intercepter et de les signaler comme des "ERREURS CRITIQUES".
-*   **Leçons Apprises:**
-    1.  **Ne jamais faire confiance à un code de statut seul :** Toujours valider le contenu (le "contrat") d'une réponse API avant de la traiter, même si le code de statut est un succès.
-    2.  **Les tests doivent être stricts et échouer bruyamment :** Une suite de tests qui ne signale pas clairement un échec est dangereuse. Un test doit propager les erreurs pour que le harnais de test puisse les rapporter.
+*   **Problème:** L'API de création d'utilisateurs sur l'environnement de TEST retournait un statut de succès (HTTP 201) mais avec un corps de réponse vide, causant des erreurs `TypeError` imprévues plus loin dans le code. De plus, la suite de tests ne rapportait pas ces erreurs correctement.
+*   **Description:** 1. La fonction `creerUtilisateur360sc` faisait confiance au code de statut HTTP 201. 2. Les fonctions de test interceptaient les erreurs sans les propager, masquant les échecs.
+*   **Impact:** Un bug latent dans le code de production et une suite de tests non fiable.
+*   **Solution Appliquée:** 1. Modification du code pour ne plus se fier au corps de la réponse `POST`, et mise en place d'un contournement (`GET` par email) pour récupérer l'objet créé. 2. Modification des tests pour qu'ils lèvent (`throw`) une `Error` en cas d'échec, afin d'être correctement rapportés par la suite de tests.
+*   **Leçons Apprises:** 1. Ne jamais faire confiance à un code de statut seul. 2. Les tests doivent être stricts et échouer bruyamment.
 
 ---
+
+## REX Item 8: Découverte d'une Architecture API Éclatée (V1/V2)
+*   **Problème:** Échecs persistants (404 Not Found, 400 Bad Request) sur les opérations utilisateurs, même en utilisant les bons chemins d'endpoints.
+*   **Description:** Après une série de tests et d'erreurs, il a été découvert que l'API 360sc utilise une architecture multi-serveurs :
+    1.  L'authentification et les opérations "Avatar" se font sur un serveur V2 (ex: `apiv2.360sc.yt`).
+    2.  Les opérations "Utilisateur" se font sur un serveur V1 distinct (ex: `api.360sc.yt`).
+    3.  Le token généré par le serveur V2 est universel et fonctionne sur le serveur V1.
+*   **Impact:** Toutes les tentatives d'appel sur un seul serveur étaient vouées à l'échec. La compréhension de cette architecture était la clé du déblocage.
+*   **Solution Appliquée:** 1. Le fichier `config.gs` a été enrichi pour contenir `API_BASE_URL` (V2) et `USERS_API_BASE_URL` (V1). 2. Les fonctions dans `apiHandler.gs` ont été mises à jour pour utiliser la bonne URL de base en fonction de l'opération. 3. La fonction d'authentification `getAuthToken_` a été fixée pour toujours s'exécuter sur le serveur V2 afin de générer le token universel.
+*   **Leçons Apprises:** 1. Face à des erreurs persistantes et illogiques, envisager des hypothèses "hors du cadre", comme une architecture multi-domaines. 2. Une configuration centralisée et explicite (`config.gs`) est vitale pour gérer ce genre de complexité.

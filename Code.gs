@@ -1,34 +1,51 @@
 // FILENAME: Code.gs
-// Version: 1.22.0
-// Date: 2025-06-10 10:00
+// Version: 1.24.0
+// Date: 2025-06-10 11:50
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout de la capacité à passer des propriétés à l'objet OF-ELEC lors de la création multiple.
+// Description: Adapte creerMultiplesObjets360sc pour utiliser getObjectDefinitions_ et assigner le metadataId spécifique à chaque sous-objet.
 /**
  * @fileoverview Fichier principal contenant les fonctions exposées et appelables par des services externes comme AppSheet.
  * Ce fichier se concentre sur la création d'objets (Avatars). La logique de gestion des utilisateurs est dans `users.gs`.
  */
 
-// CHANGEMENT: Ajout du paramètre optionnel 'proprietesElec'
 function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, proprietesElec) {
   let finalOutput = { success: false, message: "" };
   try {
     if (!nomDeObjetBase || !typeSysteme) { throw new Error("'nomDeObjetBase' et 'typeSysteme' requis."); }
     const systemTypeUpper = typeSysteme.toUpperCase();
-    const config = getConfiguration_(systemTypeUpper);
     const typeObjetUpper = typeObjet ? String(typeObjet).toUpperCase() : "OF";
     if (typeObjetUpper !== 'OF') { throw new Error("Usage incorrect: 'creerMultiplesObjets360sc' est réservé à 'OF'."); }
-    const metadataAvatarTypeId = config.METADATA_AVATAR_TYPES.OF;
-    if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) { throw new Error(`'METADATA_AVATAR_TYPES.OF' non configuré pour ${systemTypeUpper}.`); }
+
+    // CHANGEMENT: On récupère les définitions dynamiquement en fonction de l'environnement
+    const objectDefinitions = getObjectDefinitions_(systemTypeUpper);
     
+    let parsedProperties = null;
+    if (proprietesElec && typeof proprietesElec === 'string' && proprietesElec.trim().startsWith('{')) {
+      try {
+        parsedProperties = JSON.parse(proprietesElec);
+        Logger.log("Les propriétés ELEC fournies en JSON ont été parsées avec succès.");
+      } catch (jsonError) {
+        throw new Error(`Le paramètre 'proprietesElec' n'est pas un JSON valide. Erreur: ${jsonError.message}`);
+      }
+    } else if (proprietesElec && typeof proprietesElec === 'object') {
+      parsedProperties = proprietesElec;
+      Logger.log("Les propriétés ELEC ont été fournies directement comme un objet.");
+    }
+
     Logger.log(`Début création multiple pour OF '${nomDeObjetBase}', sys: ${systemTypeUpper}`);
     const token = getAuthToken_(systemTypeUpper);
     
-    for (const objDef of OBJECT_DEFINITIONS) {
+    for (const objDef of objectDefinitions) {
+      // CHANGEMENT: L'ID de métadonnée est maintenant spécifique à chaque objDef
+      const metadataAvatarTypeId = objDef.metadataId;
+      if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) {
+        throw new Error(`Metadata ID non configuré pour '${objDef.key}' dans l'environnement ${systemTypeUpper}.`);
+      }
+
       const objectNameForApi = `${objDef.alphaId}:${nomDeObjetBase}${objDef.nameSuffix}`;
       try {
         const createdAvatarObject = createAvatar_(token, systemTypeUpper, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
         
-        // Gère la nouvelle réponse de l'API
         if (createdAvatarObject && createdAvatarObject.mcUrl) {
           finalOutput[objDef.key] = createdAvatarObject.mcUrl;
         } else if (createdAvatarObject && createdAvatarObject['@id']) {
@@ -37,17 +54,12 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, propr
            throw new Error("La réponse de création d'avatar était invalide.");
         }
 
-        // CHANGEMENT: Logique pour ajouter des propriétés à l'objet OF-ELEC
-        if (objDef.alphaId === "v0:OF_ELEC" && proprietesElec && typeof proprietesElec === 'object' && Object.keys(proprietesElec).length > 0) {
+        if (objDef.alphaId === "v0:OF_ELEC" && parsedProperties && Object.keys(parsedProperties).length > 0) {
           Logger.log(`Détection de l'objet OF_ELEC. Tentative d'ajout des propriétés.`);
-          
-          const avatarId = createdAvatarObject['@id'].split('/').pop(); // Extrait l'ID de l'IRI
-          const propertiesPayload = Object.keys(proprietesElec).map(key => ({
-            name: key,
-            value: String(proprietesElec[key]),
-            private: false
+          const avatarId = createdAvatarObject['@id'].split('/').pop();
+          const propertiesPayload = Object.keys(parsedProperties).map(key => ({
+            name: key, value: String(parsedProperties[key]), private: false
           }));
-
           addPropertiesToAvatar_(token, systemTypeUpper, avatarId, propertiesPayload);
           Logger.log(`Propriétés ajoutées avec succès à l'objet ${objectNameForApi}.`);
         }
@@ -68,6 +80,7 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, propr
   return JSON.stringify(finalOutput);
 }
 
+// ... Les fonctions creerObjetUnique360sc, etc. restent inchangées ...
 function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, typeMoule) {
   let finalOutput = { success: false, message: "" };
   try {
