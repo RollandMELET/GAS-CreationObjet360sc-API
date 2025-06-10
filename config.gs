@@ -31,9 +31,9 @@ const COMMON_API_SETTINGS = {
 
 // --- MAPPING SPÉCIFIQUE POUR LES TYPES DE MOULES ---
 const ALPHA_ID_MAPPING = {
-  MouleEnveloppe: "v0:MOULE_ENVELOPPE",
-  MouleToit: "v0:MOULE_TOIT",
-  MouleDalle: "v0:MOULE_DALLE",
+  MouleEnveloppe: "v0:OF_ENVELOPPE",
+  MouleToit: "v0:OF_TOIT",
+  MouleDalle: "v0:OF_DALLE",
   Autre: "v0:MOULE_AUTRE"
 };
 
