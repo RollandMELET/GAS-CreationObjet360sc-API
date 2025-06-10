@@ -1,8 +1,8 @@
 # FILENAME: PROCEDURE_MISE_EN_PRODUCTION.md
-# Version: 1.0.0
-# Date: 2025-06-08 17:00
+# Version: 1.1.0
+# Date: 2025-06-10 12:15
 # Author: AI Senior Coder (pour Rolland MELET)
-# Description: Guide technique détaillé pour l'activation de l'environnement de Production dans le projet GAS-CreationObjet360sc-API.
+# Description: Mise à jour majeure pour refléter l'architecture API V1/V2 et la nouvelle configuration granulaire des métadonnées d'OF.
 
 # Procédure Technique : Activation de l'Environnement de Production
 
@@ -12,16 +12,20 @@ Ce document décrit la procédure complète pour configurer, activer et valider 
 
 ## 2. Prérequis : Informations à Collecter
 
-Avant de commencer, vous devez avoir obtenu les informations suivantes spécifiques à l'environnement de **Production** :
+Avant de commencer, vous devez avoir obtenu les informations suivantes spécifiques à l'environnement de **Production** de 360SmartConnect :
 
 **A. Configurations Publiques :**
-- [ ] URL de base de l'API de Production (`API_BASE_URL`).
-- [ ] URL de base pour le service Utilisateurs, si elle est différente (`USERS_API_BASE_URL`).
-- [ ] ID de l'entreprise (`COMPANY_ID`).
-- [ ] ID du "finger" pour la génération des `mcUrl` (`GENERATE_MC_FINGER`).
-- [ ] ID du type de métadonnée pour les OF (`METADATA_AVATAR_TYPES.OF`).
-- [ ] ID du type de métadonnée pour les MOULES (`METADATA_AVATAR_TYPES.MOULE`).
-- [ ] ID du type de métadonnée par défaut (`METADATA_AVATAR_TYPES.DEFAULT`).
+- [ ] **URL de base de l'API V2** (`API_BASE_URL`) : Utilisée pour les Avatars et l'authentification.
+- [ ] **URL de base de l'API V1** (`USERS_API_BASE_URL`) : Utilisée pour les Utilisateurs.
+- [ ] **ID de l'entreprise** (`COMPANY_ID`).
+- [ ] **ID du "finger"** pour la génération des `mcUrl` (`GENERATE_MC_FINGER`).
+- [ ] **IDs des types de métadonnées pour les OF :**
+    - [ ] ID pour `OF_PRINCIPAL`.
+    - [ ] ID pour `OF_ELEC`.
+    - [ ] ID pour `OF_COMPOSANT` (utilisé pour DALLE, TOIT, ENVELOPPE).
+- [ ] **IDs des types de métadonnées génériques :**
+    - [ ] ID pour `MOULE`.
+    - [ ] ID `DEFAULT` (par défaut).
 
 **B. Identifiants Secrets :**
 - [ ] Nom d'utilisateur du compte de service de Production (`API_USERNAME_PROD`).
@@ -37,135 +41,62 @@ Avant de commencer, vous devez avoir obtenu les informations suivantes spécifiq
 
 1.  Ouvrez le fichier `config.gs` dans VSCode.
 2.  Localisez l'objet `ENV_CONFIG.PROD`.
-3.  Remplacez les valeurs `"VOTRE_..._PROD"` par les **configurations publiques** que vous avez collectées.
-4.  Remplacez l'intégralité du contenu du fichier par le code ci-dessous, après y avoir inséré vos valeurs.
+3.  Remplacez **toutes les valeurs placeholder** par les **configurations publiques** que vous avez collectées pour la production. Soyez particulièrement attentif à la section `METADATA_AVATAR_TYPES`.
 
-```javascript
-// FILENAME: config.gs
-// Version: 1.7.0
-// Date: 2025-06-08 17:00
-// Author: Rolland MELET
-// Description: Ajout des configurations pour l'environnement de Production.
+### Étape 3.2 : Ajouter les Identifiants Secrets de Production
 
-/**
- * @fileoverview Configuration settings for the 360sc API interaction script.
- */
+1.  Ouvrez votre projet dans l'éditeur Google Apps Script en ligne (`clasp open`).
+2.  Naviguez vers : **Paramètres du projet** (l'icône engrenage ⚙️ sur la gauche).
+3.  Descendez jusqu'à la section **Propriétés du script** et cliquez sur **Modifier les propriétés du script**.
+4.  Cliquez sur **Ajouter une propriété de script**.
+5.  Ajoutez les deux propriétés suivantes, en utilisant **exactement ces noms de clé** :
 
-// --- MAPPING DES PROFILS UTILISATEUR ---
-const ROLE_MAPPING = {
-  "Admin":             ["ROLE_USER", "ROLE_ADMIN", "ROLE_DUHALDETEST"], 
-  "BOSS":              ["ROLE_USER", "ROLE_ADMIN", "ROLE_DUHALDETEST"],
-  "Duhalde":           ["ROLE_USER", "ROLE_DUHALDETEST"], 
-  "Operateur":         ["ROLE_USER", "ROLE_OPERATEUR"],
-  "ControleurQualite": ["ROLE_USER", "ROLE_CONTROLEUR_QUALITE"],
-  "Levageur":          null,
-  "Transporteur":      null,
-  "Client":            null
-};
+| Propriété (Clé) | Valeur |
+| :--- | :--- |
+| `API_USERNAME_PROD` | Le nom d'utilisateur du compte de service de production. |
+| `API_PASSWORD_PROD` | Le mot de passe du compte de service de production. |
 
-// Common settings for the API
-const COMMON_API_SETTINGS = {
-  GENERATE_MC_QUANTITY: 1,
-  AUTH_ENDPOINT: "/auth",
-  AVATARS_ENDPOINT: "/api/avatars",
-  USERS_ENDPOINT: "/api/v2/users", 
-  MCS_SUFFIX_PATH: "/m_cs"
-};
+6.  Cliquez sur **Enregistrer les propriétés du script**.
 
-// --- MAPPING SPÉCIFIQUE POUR LES TYPES DE MOULES ---
-const ALPHA_ID_MAPPING = {
-  MouleEnveloppe: "v0:MOULE_ENVELOPPE",
-  MouleToit: "v0:MOULE_TOIT",
-  MouleDalle: "v0:MOULE_DALLE",
-  Autre: "v0:MOULE_AUTRE"
-};
+> **SÉCURITÉ CRITIQUE :** Ne stockez JAMAIS ces valeurs ailleurs que dans les Propriétés du Script.
 
-// Environment-specific configurations
-const ENV_CONFIG = {
-  DEV: { /* ... configuration DEV inchangée ... */ },
-  TEST: { /* ... configuration TEST inchangée ... */ },
-  PROD: {
-    API_BASE_URL: "METTEZ_VOTRE_URL_DE_BASE_PROD_ICI", // ex: "https://apiv2.360sc.yt"
-    COMPANY_ID: "METTEZ_VOTRE_ID_COMPANIE_PROD_ICI", // ex: "/api/companies/..."
-    GENERATE_MC_FINGER: "METTEZ_VOTRE_MC_FINGER_ID_PROD_ICI", // ex: "/api/fingers/..."
-    METADATA_AVATAR_TYPES: {
-      OF: "METTEZ_VOTRE_METADATA_ID_OF_PROD_ICI",
-      MOULE: "METTEZ_VOTRE_METADATA_ID_MOULE_PROD_ICI",
-      DEFAULT: "METTEZ_VOTRE_METADATA_ID_DEFAULT_PROD_ICI"
-    }
-    // Si l'URL des utilisateurs est différente en PROD, ajoutez la ligne suivante :
-    // USERS_API_BASE_URL: "METTEZ_URL_UTILISATEURS_PROD_ICI"
-  }
-};
+### Étape 3.3 : Déployer et Valider la Configuration
 
-/**
- * Retrieves the configuration for the specified system type.
- * @param {string} typeSysteme "DEV", "TEST", ou "PROD".
- * @return {object} The configuration object for the system type.
- * @throws {Error} If the system type is invalid.
- */
-function getConfiguration_(typeSysteme) { /* ... fonction inchangée ... */ }
+Pour valider que la configuration est correcte, nous allons utiliser les fonctions de test dédiées à la production qui sont déjà dans `tests.gs`.
 
-// Définition des types d'objets à créer (structure de base pour OF)
-const OBJECT_DEFINITIONS = [ /* ... définition inchangée ... */ ];
-Use code with caution.
-Markdown
-Étape 3.2 : Ajouter les Identifiants Secrets de Production
-Ouvrez votre projet dans l'éditeur Google Apps Script (clasp open).
-Naviguez vers : Paramètres du projet (l'icône engrenage ⚙️ sur la gauche).
-Descendez jusqu'à la section Propriétés du script.
-Cliquez sur Ajouter une propriété de script.
-Ajoutez les deux propriétés suivantes, en utilisant exactement ces noms de clé :
-Propriété (Clé)	Valeur
-API_USERNAME_PROD	Le nom d'utilisateur du compte de service de production.
-API_PASSWORD_PROD	Le mot de passe du compte de service de production.
-Cliquez sur Enregistrer les propriétés du script.
-![alt text](https://img.shields.io/badge/SÉCURITÉ-CRITIQUE-red)
-Ne stockez JAMAIS ces valeurs ailleurs que dans les Propriétés du Script.
-Étape 3.3 : Créer un Test de Validation Non-Destructif
-Pour valider la configuration de production sans créer de données inutiles, nous allons ajouter un test qui ne fait qu'une seule chose : s'authentifier.
-Ouvrez le fichier tests.gs dans VSCode.
-Ajoutez la nouvelle fonction de test suivante à la fin du fichier :
-/**
- * @brief Test de validation non-destructif pour l'environnement de Production.
- * @description Cette fonction tente uniquement de s'authentifier auprès de l'API de PROD.
- * Elle ne crée, ne modifie ni ne supprime aucune donnée.
- */
-function testAuthentication_PROD() {
-  Logger.log("Lancement du test de validation pour l'environnement PROD.");
-  Logger.log("ATTENTION : Ce test ne doit interagir qu'avec le service d'authentification.");
-  const testSystemType = "PROD";
-  try {
-    const token = getAuthToken_(testSystemType);
-    if (token) {
-      Logger.log("✅ SUCCÈS : L'authentification à l'environnement de Production a réussi.");
-    } else {
-      throw new Error("Le token retourné est vide ou nul.");
-    }
-  } catch (e) {
-    Logger.log(`❌ ERREUR : Échec de l'authentification à l'environnement de Production. Message : ${e.message}`);
-    Logger.log(`Stack Trace: ${e.stack}`);
-  }
-}
-Use code with caution.
-JavaScript
-Étape 3.4 : Déployer et Exécuter le Test de Validation
-Depuis votre terminal dans VSCode, poussez toutes les modifications :
-clasp push
-Use code with caution.
-Sh
-Ouvrez le projet dans l'éditeur en ligne :
-clasp open
-Use code with caution.
-Sh
-Dans l'éditeur, sélectionnez la nouvelle fonction testAuthentication_PROD dans le menu déroulant.
-Cliquez sur Exécuter.
-Ouvrez les journaux (Afficher > Journaux).
-Étape 3.5 : Valider le Résultat
-Si le test réussit, vous devriez voir le message : ✅ SUCCÈS : L'authentification à l'environnement de Production a réussi. dans les logs.
-Si le test échoue, le message d'erreur vous donnera une piste. Les causes communes sont :
-Une erreur de frappe dans les identifiants ou le nom des propriétés.
-Une URL de base incorrecte dans config.gs.
-Un problème de pare-feu ou de réseau.
-4. Post-Activation
-Une fois le test d'authentification réussi, votre script est techniquement prêt à être utilisé en production. Toutes les fonctions (creer..., activer...) peuvent maintenant être appelées avec typeSysteme = "PROD".
+1.  **Poussez les modifications de la configuration :**
+    ```sh
+    clasp push
+    ```
+
+2.  **Ouvrez le projet dans l'éditeur en ligne :**
+    ```sh
+    clasp open
+    ```
+
+3.  **Exécutez les tests de validation non-destructifs un par un :**
+
+    *   **Test 1 : Authentification**
+        *   Sélectionnez la fonction `maFonctionDeTestPourAuth_PROD`.
+        *   Cliquez sur **Exécuter**.
+        *   Vérifiez les journaux (`Afficher > Journaux`). Vous devez voir le message : `✅ SUCCÈS : L'authentification à l'environnement de Production a réussi.`
+        *   Si cela échoue, vérifiez les identifiants, les noms des propriétés et l'URL `API_BASE_URL`.
+
+    *   **Test 2 : Création d'un objet de test**
+        *   Sélectionnez la fonction `maFonctionDeTestPourCreerObjetUnique_PROD`.
+        *   Cliquez sur **Exécuter**.
+        *   Vérifiez les journaux. Vous devez voir un message de succès indiquant la création d'un objet de test en Production.
+        *   Si cela échoue, vérifiez les IDs (`COMPANY_ID`, `GENERATE_MC_FINGER`, IDs `METADATA_AVATAR_TYPES`).
+
+### Étape 3.4 : Test End-to-End (Optionnel mais Recommandé)
+
+Si les tests non-destructifs ont réussi, vous pouvez effectuer un test de création complet pour valider l'ensemble du processus.
+
+1.  Dans l'éditeur, sélectionnez la fonction `testEndToEnd_PROD`.
+2.  Lisez l'avertissement dans les logs, puis cliquez sur **Exécuter**.
+3.  Cette fonction créera une structure OF complète sur l'environnement de Production.
+4.  Vérifiez que le test se termine avec succès et, si possible, validez la présence des objets dans l'interface de 360SmartConnect.
+
+## 4. Post-Activation
+
+Une fois tous les tests de validation réussis, votre script est techniquement prêt à être utilisé en production. Toutes les fonctions (`creerMultiplesObjets360sc`, `creerUtilisateur360sc`, etc.) peuvent maintenant être appelées depuis vos applications (ex: AppSheet) en passant `"PROD"` comme paramètre `typeSysteme`.
