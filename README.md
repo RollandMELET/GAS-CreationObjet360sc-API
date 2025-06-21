@@ -92,3 +92,7 @@ IF(ISNOTBLANK([VotreColonneTab]), CONCATENATE("""tab"":""", SUBSTITUTE([VotreCol
 4.  Dans l'éditeur, sélectionnez la fonction `testSuiteComplete` et cliquez sur **Exécuter**.
 5.  Consultez les journaux (`Afficher > Journaux`) pour valider que tous les tests passent.
 6.  Une fois satisfait, commitez et poussez sur GitHub avec un message descriptif.
+
+## Ressources
+le script se trouve à l'URL suivante : 
+https://script.google.com/home/projects/142FpeFN1CGptXBMCIeRUSYLiDXAr_xrOch8E7sMmxqyAe3E6hiCHfcxn/edit
