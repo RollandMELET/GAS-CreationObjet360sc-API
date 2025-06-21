@@ -96,3 +96,7 @@ IF(ISNOTBLANK([VotreColonneTab]), CONCATENATE("""tab"":""", SUBSTITUTE([VotreCol
 ## Ressources
 le script se trouve à l'URL suivante : 
 https://script.google.com/home/projects/142FpeFN1CGptXBMCIeRUSYLiDXAr_xrOch8E7sMmxqyAe3E6hiCHfcxn/edit
+
+## Déployé comme bibliotheque :
+ID : AKfycbxRuh7NkUMdpd2aG4528CJVRW5zi1wRArEm10rrL0QKzjS-E_HskI2mIkuTtnh3C_DT
+URL : https://script.google.com/macros/library/d/142FpeFN1CGptXBMCIeRUSYLiDXAr_xrOch8E7sMmxqyAe3E6hiCHfcxn/1

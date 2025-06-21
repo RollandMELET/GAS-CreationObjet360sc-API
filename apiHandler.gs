@@ -1,14 +1,13 @@
 // FILENAME: apiHandler.gs
-// Version: 2.6.1
-// Date: 2025-06-10 22:30
+// Version: 2.6.2
+// Date: 2025-06-10 22:55
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Version finale et propre. Cible l'API d'historique sur le serveur V1, comme validé par les tests.
+// Description: Ajout d'un log détaillé du payload dans createAvatar_ pour le débogage.
 
 /**
  * @fileoverview Fonctions de bas niveau pour les appels à l'API 360sc.
  */
 
-// ... (toutes les fonctions jusqu'à updateUser_) ...
 function getAuthToken_(typeSysteme) {
   const config = getConfiguration_(typeSysteme);
   const authBaseUrl = config.API_BASE_URL; 
@@ -39,8 +38,17 @@ function createAvatar_(token, typeSysteme, name, alphaId, metadataAvatarTypeId) 
     name: name, alphaId: alphaId, enabled: true, company: config.COMPANY_ID, metadataAvatarType: metadataAvatarTypeId,
     generateMCFinger: config.GENERATE_MC_FINGER, generateMCQuantity: config.GENERATE_MC_QUANTITY
   };
+  
+  // === AJOUT POUR DÉBOGAGE ===
+  Logger.log(`[DEBUG] Payload envoyé à createAvatar_ : ${JSON.stringify(payload, null, 2)}`);
+  // ============================
+
   const deduplicationId = Utilities.getUuid();
-  const response = UrlFetchApp.fetch(config.API_BASE_URL + config.AVATARS_ENDPOINT, { method: 'post', contentType: 'application/ld+json', headers: { 'Authorization': `Bearer ${token}`, 'x-deduplication-id': deduplicationId }, payload: JSON.stringify(payload), muteHttpExceptions: true });
+  const response = UrlFetchApp.fetch(config.API_BASE_URL + config.AVATARS_ENDPOINT, {
+    method: 'post', contentType: 'application/ld+json',
+    headers: { 'Authorization': `Bearer ${token}`, 'x-deduplication-id': deduplicationId },
+    payload: JSON.stringify(payload), muteHttpExceptions: true
+  });
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
   if (responseCode === 201) {
@@ -122,33 +130,17 @@ function updateUser_(token, typeSysteme, userId, payload) {
   throw new Error(`Erreur lors de la mise à jour de l'utilisateur. Code: ${responseCode}. Body: ${responseBody}`);
 }
 
-/**
- * Récupère les entrées d'historique pour un itemId spécifique (ID d'avatar).
- * @param {string} token Le token d'authentification.
- * @param {string} typeSysteme L'environnement (DEV, TEST, PROD).
- * @param {string} itemId L'ID de l'avatar dont on veut l'historique.
- * @returns {Array} Un tableau d'objets représentant l'historique.
- */
 function getHistoryForItem_(token, typeSysteme, itemId) {
   const config = getConfiguration_(typeSysteme);
-  // Cible l'API V1 (USERS_API_BASE_URL) comme validé par les tests
   const endpointUrl = `${config.USERS_API_BASE_URL}/api/histories?itemId=${itemId}`;
   Logger.log(`Récupération de l'historique pour l'item ID ${itemId} sur ${endpointUrl}`);
-  
-  const response = UrlFetchApp.fetch(endpointUrl, {
-    method: 'get',
-    headers: { 'Authorization': `Bearer ${token}` },
-    muteHttpExceptions: true
-  });
-
+  const response = UrlFetchApp.fetch(endpointUrl, { method: 'get', headers: { 'Authorization': `Bearer ${token}` }, muteHttpExceptions: true });
   const responseCode = response.getResponseCode();
   const responseBody = response.getContentText();
-
   if (responseCode === 200) {
     const jsonResponse = JSON.parse(responseBody);
     Logger.log(`Trouvé ${jsonResponse['hydra:totalItems']} entrée(s) d'historique.`);
     return jsonResponse['hydra:member'] || [];
   }
-  
   throw new Error(`Échec de la récupération de l'historique pour l'item ${itemId}. Code: ${responseCode}. Body: ${responseBody}`);
 }

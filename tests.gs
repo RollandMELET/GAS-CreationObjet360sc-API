@@ -1,8 +1,8 @@
 // FILENAME: tests.gs
-// Version: 2.5.1
-// Date: 2025-06-10 22:30
+// Version: 2.5.2
+// Date: 2025-06-10 22:45
 // Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Version finale et propre. Test d'historique validé et code expérimental retiré.
+// Description: Ajout de la fonction de test de bout en bout pour l'environnement TEST (testEndToEnd_TEST).
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
  * du projet, séparées du code de production pour une meilleure organisation.
@@ -69,6 +69,30 @@ function testEndToEnd_PROD() {
 // =============== SUITE DE TESTS POUR DEV & TEST ==================
 // =================================================================
 
+/**
+ * NOUVELLE FONCTION
+ * Teste la création d'une structure OF complète sur l'environnement de TEST.
+ * ATTENTION : Cette fonction crée des objets réels sur l'environnement de TEST.
+ */
+function testEndToEnd_TEST() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  Logger.log("⚠️ ATTENTION : Création de 5 objets de test sur l'environnement de TEST.");
+  const nomObjet = "OF-TEST-E2E-" + new Date().getTime(); 
+  const resultat = creerMultiplesObjets360sc(nomObjet, "TEST", "OF");
+  try {
+    var resultatObj = JSON.parse(resultat);
+    if (resultatObj.success) {
+      Logger.log("✅ SUCCÈS: La création de la structure OF en Test a réussi.");
+    } else {
+      Logger.log(`❌ ÉCHEC: La création de la structure OF en Test a échoué. Erreur: ${resultatObj.error}`);
+       throw new Error("Échec du test de création multiple en TEST: " + resultatObj.error);
+    }
+  } catch(e) {
+    Logger.log(`❌ ÉCHEC CRITIQUE: Impossible d'analyser la réponse JSON.`);
+    throw e;
+  }
+}
+
 function testSuiteComplete() {
     Logger.log("======================================================");
     Logger.log("Lancement de la SUITE DE TESTS COMPLÈTE (DEV & TEST)");
@@ -98,10 +122,6 @@ function testSuiteComplete() {
 }
 
 
-/**
- * Teste la récupération de l'historique d'un objet sur le serveur V1.
- * Crée un objet, récupère son ID, puis appelle la fonction d'historique.
- */
 function maFonctionDeTestPourRecupererHistorique() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   const testSystemType = "TEST"; 
@@ -117,7 +137,6 @@ function maFonctionDeTestPourRecupererHistorique() {
   const avatarId = creationResult.avatarApiIdPath.split('/').pop();
   Logger.log(`Objet de test créé avec l'ID: ${avatarId}.`);
 
-  // On appelle la fonction de haut niveau pour un test d'intégration complet
   const historiqueResultString = getHistoriqueObjet360sc(testSystemType, avatarId);
   const historiqueResult = JSON.parse(historiqueResultString);
 
@@ -241,70 +260,4 @@ function maFonctionDeTestPourActiverUtilisateurParProfil() {
     throw new Error("Le test pour profil inexistant aurait dû échouer, mais a retourné : " + resultatWrapper3);
   }
   Logger.log(`Résultat du wrapper pour profil inexistant (devrait être une erreur): ${resultatWrapper3}`);
-}
-
-
-// =================================================================
-// ===== FONCTIONS DE TEST INDIVIDUELLES (non incluses dans la suite) ======
-// =================================================================
-
-function maFonctionDeTestPourAuth() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testSystemType = "TEST"; 
-  var resultatString = testAuthentication(testSystemType);
-  Logger.log("Résultat de testAuthentication (chaîne JSON): " + resultatString);
-}
-
-function maFonctionDeTestPourCreerMultiples_ERREUR() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var resultatErr = creerMultiplesObjets360sc("TestMultiErreurType", "DEV", "MOULE");
-  Logger.log("Résultat attendu (erreur de type) : " + resultatErr);
-}
-
-function maFonctionDeTestPourCreerUtilisateurEtRecupererId() {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  var testSystemType = "TEST"; 
-  var timestamp = new Date().getTime();
-  var testUsername = "TestUserIdNum" + timestamp; 
-  var testEmail = "testuseridnum" + timestamp + "@example.com";
-  var resultatId = creerUtilisateurEtRecupererId360sc(testSystemType, testUsername, testEmail, "TestIdNum", "UtilisateurIdNum" + timestamp, []);
-  Logger.log(`Résultat du test (devrait être un ID numérique ou ERREUR): ${resultatId}`);
-}
-
-
-// =================================================================
-// ===== FONCTIONS DE TEST BAS NIVEAU (appelées par d'autres tests) ======
-// =================================================================
-
-function testAuthentication(typeSysteme) {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  let finalOutput = { success: false, message: "" };
-  try {
-    if (!typeSysteme) throw new Error("'typeSysteme' est requis.");
-    const token = getAuthToken_(typeSysteme.toUpperCase());
-    finalOutput.success = true;
-    finalOutput.message = `Authentification réussie pour ${typeSysteme.toUpperCase()}.`;
-  } catch (e) {
-    finalOutput.error = e.message;
-  }
-  return JSON.stringify(finalOutput);
-}
-
-function testCreateSingleObject(typeSysteme, nomObjetTestBase, alphaIdTest, metadataAvatarTypeIdTest) {
-  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
-  let finalOutput = { success: false, message: "" };
-  try {
-    const systemTypeUpper = typeSysteme.toUpperCase();
-    const token = getAuthToken_(systemTypeUpper);
-    const objectNameForApiTest = `${alphaIdTest}:${nomObjetTestBase}`;
-    const avatarObject = createAvatar_(token, systemTypeUpper, objectNameForApiTest, alphaIdTest, metadataAvatarTypeIdTest);
-    const mcUrl = avatarObject.mcUrl || getMcUrlForAvatar_(token, systemTypeUpper, avatarObject['@id']);
-    finalOutput.success = true;
-    finalOutput.message = `Objet unique (${systemTypeUpper}) créé.`;
-    finalOutput.avatarApiIdPath = avatarObject['@id'];
-    finalOutput.mcUrl = mcUrl;
-  } catch (e) {
-    finalOutput.error = e.message;
-  }
-  return JSON.stringify(finalOutput);
 }
