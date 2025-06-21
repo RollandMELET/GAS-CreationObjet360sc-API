@@ -1,6 +1,6 @@
 # FILENAME: README.md
-# Version: 1.9.0
-# Date: 2025-06-10 12:05
+# Version: 1.9.1
+# Date: 2025-06-21 7:48
 # Author: Rolland MELET (Collaboratively with AI Senior Coder)
 # Description: Documentation majeure des nouvelles fonctionnalités, de la configuration avancée et de l'intégration avec AppSheet.
 
