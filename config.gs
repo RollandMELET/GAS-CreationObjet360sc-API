@@ -1,9 +1,9 @@
 // <!-- START OF FILE: config.gs -->
 // FILENAME: config.gs
-// Version: 1.13.0
-// Date: 2025-06-22 18:52
+// Version: 1.14.0
+// Date: 2024-06-22 20:41
 // Author: Rolland MELET & AI Senior Coder
-// Description: Ajout d'une nouvelle fonction de définition 'getObjectDefinitionsForPrincipalAndElec_' pour la création ciblée des objets OF Principal et Elec.
+// Description: Ajout des IDs de 'runner template' spécifiques à l'environnement TEST pour le déploiement de processus.
 
 /**
  * @fileoverview Configuration settings for the 360sc API interaction script.
@@ -54,6 +54,11 @@ const ENV_CONFIG = {
       MOULE: "/api/metadata_avatar_types/68309a60e3f94",
       DEFAULT: "/api/metadata_avatar_types/683097e6c75c7",
       ETIQUETTE: "/api/metadata_avatar_types/6857ca820fb47"
+    },
+    // [NOUVEAU] Structure ajoutée pour la cohérence
+    RUNNER_TEMPLATE_IDS: {
+      OF_PRINCIPAL: null,
+      OF_ELEC: null
     }
   },
   TEST: {
@@ -68,6 +73,11 @@ const ENV_CONFIG = {
       MOULE: "/api/metadata_avatar_types/6840003b7c7b6",
       DEFAULT: "/api/metadata_avatar_types/68309961b20ee",
       ETIQUETTE: "/api/metadata_avatar_types/6857ca820fb47"
+    },
+    // [NOUVEAU] IDs pour le déploiement de processus en TEST
+    RUNNER_TEMPLATE_IDS: {
+      OF_PRINCIPAL: "6847f79203ce9",
+      OF_ELEC: "6847f804142a1"
     }
   },
   PROD: {
@@ -82,6 +92,11 @@ const ENV_CONFIG = {
       MOULE: "/api/metadata_avatar_types/684469e053ba5",
       DEFAULT: "/api/metadata_avatar_types/684469d19d051",
       ETIQUETTE: "/api/metadata_avatar_types/6857ca94cca78"
+    },
+    // [NOUVEAU] Structure ajoutée pour la cohérence
+    RUNNER_TEMPLATE_IDS: {
+      OF_PRINCIPAL: null,
+      OF_ELEC: null
     }
   }
 };
@@ -118,15 +133,17 @@ function getObjectDefinitions_(typeSysteme) {
 }
 
 /**
- * [NOUVEAU] Construit la liste des définitions d'objets OF à créer (PRINCIPAL ET ELEC SEULEMENT).
+ * Construit la liste des définitions d'objets OF à créer (PRINCIPAL ET ELEC SEULEMENT).
  */
 function getObjectDefinitionsForPrincipalAndElec_(typeSysteme) {
   const config = getConfiguration_(typeSysteme);
   const metadataTypes = config.METADATA_AVATAR_TYPES;
+  // [MODIFIÉ] On récupère aussi les IDs de runner template
+  const runnerTemplateIds = config.RUNNER_TEMPLATE_IDS;
 
   return [
-    { key: "PAC_360scID",      alphaId: "v0:OF_PRINCIPAL", nameSuffix: "",        metadataId: metadataTypes.OF_PRINCIPAL },
-    { key: "PAC_360scID_ELEC", alphaId: "v0:OF_ELEC",      nameSuffix: "-ELEC",   metadataId: metadataTypes.OF_ELEC }
+    { key: "PAC_360scID",      alphaId: "v0:OF_PRINCIPAL", nameSuffix: "",        metadataId: metadataTypes.OF_PRINCIPAL, runnerTemplateId: runnerTemplateIds.OF_PRINCIPAL, type: "OF_PRINCIPAL" },
+    { key: "PAC_360scID_ELEC", alphaId: "v0:OF_ELEC",      nameSuffix: "-ELEC",   metadataId: metadataTypes.OF_ELEC,      runnerTemplateId: runnerTemplateIds.OF_ELEC,      type: "OF_ELEC"      }
   ];
 }
 // <!-- END OF FILE: config.gs -->

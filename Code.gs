@@ -1,9 +1,9 @@
 // <!-- START OF FILE: Code.gs -->
 // FILENAME: Code.gs
-// Version: 1.28.0
+// Version: 1.29.0
 // Date: 2024-06-22 20:41
 // Author: Rolland MELET & AI Senior Coder
-// Description: Alignement de creerMultiplesObjets360sc pour retourner aussi les AvatarID, comme creerOFPrincipalEtElec360sc. Standardisation de l'usage de .id.
+// Description: Ajout du déploiement de processus conditionnel à l'environnement TEST dans creerOFPrincipalEtElec360sc.
 
 /**
  * @fileoverview Fichier principal contenant les fonctions exposées et appelables par des services externes comme AppSheet.
@@ -42,6 +42,7 @@ function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec
 
       const objectNameForApi = `${objDef.alphaId}:${nomDeObjetBase}${objDef.nameSuffix}`;
       try {
+        // --- ÉTAPE 1: Création de l'avatar ---
         const createdAvatarObject = createAvatar_(token, systemTypeUpper, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
         
         const mcUrlKey = `${objDef.key}_mcUrl`;
@@ -61,6 +62,13 @@ function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec
           throw new Error("La réponse de création d'avatar était invalide pour récupérer l'AvatarID.");
         }
 
+        // --- [MODIFIÉ] ÉTAPE 2: Déploiement du processus si environnement TEST ---
+        if (systemTypeUpper === "TEST" && objDef.runnerTemplateId) {
+          Logger.log(`Environnement TEST détecté. Tentative de déploiement du processus pour ${objDef.type}.`);
+          deployProcessForAvatar_(token, systemTypeUpper, objDef.runnerTemplateId, createdAvatarObject['@id']);
+        }
+
+        // --- ÉTAPE 3: Ajout de propriétés si OF_ELEC ---
         if (objDef.alphaId === "v0:OF_ELEC" && parsedProperties && Object.keys(parsedProperties).length > 0) {
           Logger.log(`Détection de l'objet OF_ELEC. Tentative d'ajout des propriétés.`);
           const avatarId = createdAvatarObject.id;
@@ -76,7 +84,7 @@ function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec
       }
     }
     finalOutput.success = true;
-    finalOutput.message = "Objets OF Principal et Elec créés avec succès.";
+    finalOutput.message = "Objets OF Principal et Elec créés et (si nécessaire) déployés avec succès.";
   } catch (error) {
     finalOutput.success = false;
     finalOutput.message = "Erreur.";
@@ -87,6 +95,7 @@ function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec
   return JSON.stringify(finalOutput);
 }
 
+// ... le reste du fichier est inchangé ...
 function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, proprietesElec) {
   let finalOutput = { success: false, message: "" };
   try {
@@ -123,7 +132,6 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, propr
       try {
         const createdAvatarObject = createAvatar_(token, systemTypeUpper, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
         
-        // --- [MODIFIÉ] Logique pour extraire et stocker URL et ID ---
         const mcUrlKey = `${objDef.key}_mcUrl`;
         const avatarIdKey = `${objDef.key}_AvatarID`;
 
@@ -140,11 +148,9 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, propr
         } else {
           throw new Error("La réponse de création d'avatar était invalide pour récupérer l'AvatarID.");
         }
-        // --- Fin de la modification ---
-
+        
         if (objDef.alphaId === "v0:OF_ELEC" && parsedProperties && Object.keys(parsedProperties).length > 0) {
           Logger.log(`Détection de l'objet OF_ELEC. Tentative d'ajout des propriétés.`);
-          // --- [STANDARDISÉ] Utilisation de .id au lieu de .split().pop() ---
           const avatarId = createdAvatarObject.id;
           const propertiesPayload = Object.keys(parsedProperties).map(key => ({
             name: key, value: String(parsedProperties[key]), private: false

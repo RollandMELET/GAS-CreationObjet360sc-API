@@ -1,8 +1,9 @@
+// <!-- START OF FILE: apiHandler.gs -->
 // FILENAME: apiHandler.gs
-// Version: 2.6.2
-// Date: 2025-06-10 22:55
-// Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout d'un log détaillé du payload dans createAvatar_ pour le débogage.
+// Version: 2.7.0
+// Date: 2024-06-22 20:41
+// Author: Rolland MELET & AI Senior Coder
+// Description: Ajout de la fonction deployProcessForAvatar_ pour gérer le déploiement de processus spécifique à l'environnement TEST.
 
 /**
  * @fileoverview Fonctions de bas niveau pour les appels à l'API 360sc.
@@ -39,9 +40,7 @@ function createAvatar_(token, typeSysteme, name, alphaId, metadataAvatarTypeId) 
     generateMCFinger: config.GENERATE_MC_FINGER, generateMCQuantity: config.GENERATE_MC_QUANTITY
   };
   
-  // === AJOUT POUR DÉBOGAGE ===
   Logger.log(`[DEBUG] Payload envoyé à createAvatar_ : ${JSON.stringify(payload, null, 2)}`);
-  // ============================
 
   const deduplicationId = Utilities.getUuid();
   const response = UrlFetchApp.fetch(config.API_BASE_URL + config.AVATARS_ENDPOINT, {
@@ -60,6 +59,43 @@ function createAvatar_(token, typeSysteme, name, alphaId, metadataAvatarTypeId) 
     return jsonResponse;
   }
   throw new Error(`Échec de la création de l'avatar ${name}. Code: ${responseCode}. Body: ${responseBody}`);
+}
+
+/**
+ * [NOUVEAU] Déploie un processus (runner template) sur un avatar spécifique.
+ */
+function deployProcessForAvatar_(token, typeSysteme, runnerTemplateId, avatarIri) {
+  const config = getConfiguration_(typeSysteme);
+  const endpointUrl = `${config.API_BASE_URL}/api/runner_templates/${runnerTemplateId}/deploy`;
+  Logger.log(`Déploiement du processus template ${runnerTemplateId} sur l'avatar ${avatarIri} (${typeSysteme})`);
+
+  const payload = {
+    "avatars": [ avatarIri ],
+    "sync": true,
+    "changeNextNodeSync": true,
+    "updateExisting": false
+  };
+
+  const deduplicationId = Utilities.getUuid();
+  const options = {
+    method: 'post', // cURL avec --data est un POST
+    contentType: 'application/json',
+    headers: { 'Authorization': `Bearer ${token}`, 'x-deduplication-id': deduplicationId },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch(endpointUrl, options);
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+
+  // La documentation OpenAPI n'indique pas le code de succès, 200 (OK) ou 201 (Created) sont probables.
+  if (responseCode === 200 || responseCode === 201) {
+    Logger.log(`Succès du déploiement du processus pour l'avatar ${avatarIri}. Code: ${responseCode}`);
+    return JSON.parse(responseBody);
+  } else {
+    throw new Error(`Échec du déploiement du processus. Code: ${responseCode}. Body: ${responseBody}`);
+  }
 }
 
 function getMcUrlForAvatar_(token, typeSysteme, avatarIdPath) {
@@ -144,3 +180,4 @@ function getHistoryForItem_(token, typeSysteme, itemId) {
   }
   throw new Error(`Échec de la récupération de l'historique pour l'item ${itemId}. Code: ${responseCode}. Body: ${responseBody}`);
 }
+// <!-- END OF FILE: apiHandler.gs -->

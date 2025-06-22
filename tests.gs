@@ -1,9 +1,9 @@
 // <!-- START OF FILE: tests.gs -->
 // FILENAME: tests.gs
-// Version: 2.8.0
+// Version: 2.9.0
 // Date: 2024-06-22 20:41
 // Author: Rolland MELET & AI Senior Coder
-// Description: Mise à jour du test pour creerMultiplesObjets360sc (maFonctionDeTestPourCreerMultiples_SUCCES) afin de valider la présence des AvatarID.
+// Description: Ajout d'une fonction de test dédiée (maFonctionDeTestPourCreerEtDeployerEnTest) pour valider le déploiement de processus en environnement TEST.
 
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
@@ -92,6 +92,8 @@ function testSuiteComplete() {
     Logger.log("Lancement de la SUITE DE TESTS COMPLÈTE (DEV & TEST)");
     Logger.log("======================================================");
     const testsToRun = [
+      // [MODIFIÉ] Ajout du nouveau test en premier pour une validation rapide.
+      { name: "Scénario -1: Création OF Principal & Elec AVEC DÉPLOIEMENT (sur TEST)", func: maFonctionDeTestPourCreerEtDeployerEnTest },
       { name: "Scénario 0: Création OF Principal & Elec (sur DEV)", func: maFonctionDeTestPourCreerPrincipalEtElec_SUCCES },
       { name: "Scénario 1: Création d'une structure OF complète (sur DEV)", func: maFonctionDeTestPourCreerMultiples_SUCCES },
       { name: "Scénario 2: Création d'une structure OF avec propriétés ELEC (sur DEV)", func: maFonctionDeTestPourCreerMultiplesAvecProprietes },
@@ -114,6 +116,26 @@ function testSuiteComplete() {
     Logger.log("======================================================");
     Logger.log("SUITE DE TESTS COMPLÈTE TERMINÉE");
     Logger.log("======================================================");
+}
+
+/**
+ * [NOUVEAU] Teste la création + le déploiement de processus sur l'environnement TEST.
+ */
+function maFonctionDeTestPourCreerEtDeployerEnTest() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  const testSystemType = "TEST";
+  const testNomDeObjetBase = "OF-DeployTest-" + new Date().getTime();
+  
+  const resultatString = creerOFPrincipalEtElec360sc(testNomDeObjetBase, testSystemType, null);
+  const resultat = JSON.parse(resultatString);
+  
+  if (!resultat.success) {
+    throw new Error("Le test a échoué car success=false. Erreur: " + resultat.error);
+  }
+
+  Logger.log("✅ SUCCÈS: La fonction creerOFPrincipalEtElec360sc appelée sur TEST s'est terminée sans erreur.");
+  Logger.log("Les logs devraient indiquer les étapes de déploiement.");
+  Logger.log("Résultat complet: " + resultatString);
 }
 
 
@@ -185,7 +207,6 @@ function maFonctionDeTestPourCreerMultiples_SUCCES() {
       throw new Error("Le test a échoué car success=false. Erreur: " + resultat.error);
   }
 
-  // --- [MODIFIÉ] Validation des nouvelles clés ---
   const objectDefinitions = getObjectDefinitions_(testSystemType);
   for (const objDef of objectDefinitions) {
     const mcUrlKey = `${objDef.key}_mcUrl`;
@@ -194,7 +215,6 @@ function maFonctionDeTestPourCreerMultiples_SUCCES() {
       throw new Error(`Validation échouée : La réponse ne contient pas '${mcUrlKey}' ou '${avatarIdKey}'.`);
     }
   }
-  // --- Fin de la modification ---
   
   Logger.log("✅ SUCCÈS: creerMultiplesObjets360sc a retourné un résultat valide avec toutes les URLs et les IDs.");
   Logger.log("Résultat de creerMultiplesObjets360sc (SUCCES - chaîne JSON): " + resultatString);
