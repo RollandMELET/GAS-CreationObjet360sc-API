@@ -1,19 +1,19 @@
 // <!-- START OF FILE: tests.gs -->
 // FILENAME: tests.gs
-// Version: 2.6.0
-// Date: 2025-06-22 18:52
+// Version: 2.7.0
+// Date: 2025-06-22 19:25
 // Author: Rolland MELET & AI Senior Coder
-// Description: Ajout d'un test dédié (maFonctionDeTestPourCreerPrincipalEtElec_SUCCES) pour la nouvelle fonctionnalité et intégration à la suite de tests complète.
+// Description: Mise à jour du test maFonctionDeTestPourCreerPrincipalEtElec_SUCCES pour valider la présence des AvatarID dans la réponse.
 
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
  * du projet, séparées du code de production pour une meilleure organisation.
  */
 
+// ... (Les fonctions de test pour PROD et la suite de tests restent inchangées) ...
 // =================================================================
 // =========== TESTS DÉDIÉS ET SÉCURISÉS POUR LA PRODUCTION =========
 // =================================================================
-// ... (Les fonctions de test pour PROD restent inchangées) ...
 function maFonctionDeTestPourAuth_PROD() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   var testSystemType = "PROD";
@@ -66,7 +66,6 @@ function testEndToEnd_PROD() {
     throw e;
   }
 }
-
 // =================================================================
 // =============== SUITE DE TESTS POUR DEV & TEST ==================
 // =================================================================
@@ -94,7 +93,7 @@ function testSuiteComplete() {
     Logger.log("Lancement de la SUITE DE TESTS COMPLÈTE (DEV & TEST)");
     Logger.log("======================================================");
     const testsToRun = [
-      { name: "[NOUVEAU] Scénario 0: Création OF Principal & Elec (sur DEV)", func: maFonctionDeTestPourCreerPrincipalEtElec_SUCCES },
+      { name: "Scénario 0: Création OF Principal & Elec (sur DEV)", func: maFonctionDeTestPourCreerPrincipalEtElec_SUCCES },
       { name: "Scénario 1: Création d'une structure OF complète (sur DEV)", func: maFonctionDeTestPourCreerMultiples_SUCCES },
       { name: "Scénario 2: Création d'une structure OF avec propriétés ELEC (sur DEV)", func: maFonctionDeTestPourCreerMultiplesAvecProprietes },
       { name: "Scénario 3: Création d'un Avatar unique (Moule) (sur DEV)", func: maFonctionDeTestPourCreerObjetUnique },
@@ -118,9 +117,7 @@ function testSuiteComplete() {
     Logger.log("======================================================");
 }
 
-/**
- * [NOUVEAU] Teste la nouvelle fonction creerOFPrincipalEtElec360sc.
- */
+
 function maFonctionDeTestPourCreerPrincipalEtElec_SUCCES() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   const testSystemType = "DEV";
@@ -133,11 +130,19 @@ function maFonctionDeTestPourCreerPrincipalEtElec_SUCCES() {
   if (!resultat.success) {
     throw new Error("Le test a échoué car success=false. Erreur: " + resultat.error);
   }
-  if (!resultat.PAC_360scID || !resultat.PAC_360scID_ELEC) {
-    throw new Error("Le test a échoué car les clés 'PAC_360scID' ou 'PAC_360scID_ELEC' sont manquantes dans la réponse.");
+
+  // --- [MODIFIÉ] Validation des nouvelles clés ---
+  const principalUrl = resultat.PAC_360scID_mcUrl;
+  const principalId = resultat.PAC_360scID_AvatarID;
+  const elecUrl = resultat.PAC_360scID_ELEC_mcUrl;
+  const elecId = resultat.PAC_360scID_ELEC_AvatarID;
+
+  if (!principalUrl || !principalId || !elecUrl || !elecId) {
+    throw new Error("Le test a échoué car une ou plusieurs des clés requises (mcUrl, AvatarID) sont manquantes dans la réponse.");
   }
+  // --- Fin de la modification ---
   
-  Logger.log("✅ SUCCÈS: La fonction creerOFPrincipalEtElec360sc a retourné un résultat valide.");
+  Logger.log("✅ SUCCÈS: La fonction creerOFPrincipalEtElec360sc a retourné un résultat valide avec les URLs et les IDs.");
   Logger.log("Résultat complet: " + resultatString);
 }
 

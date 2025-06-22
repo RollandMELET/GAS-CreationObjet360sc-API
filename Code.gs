@@ -1,29 +1,21 @@
 // <!-- START OF FILE: Code.gs -->
 // FILENAME: Code.gs
-// Version: 1.26.0
-// Date: 2025-06-22 18:52
+// Version: 1.27.0
+// Date: 2025-06-22 19:25
 // Author: Rolland MELET & AI Senior Coder
-// Description: Ajout de la nouvelle fonction creerOFPrincipalEtElec360sc pour la création ciblée de seulement 2 objets OF.
+// Description: Enrichissement de la sortie de creerOFPrincipalEtElec360sc pour inclure les AvatarID en plus des mcUrl.
 
 /**
  * @fileoverview Fichier principal contenant les fonctions exposées et appelables par des services externes comme AppSheet.
  * Ce fichier se concentre sur la gestion des objets (Avatars). La logique des utilisateurs est dans `users.gs`.
  */
 
-/**
- * [NOUVEAU] Crée uniquement les objets OF Principal et OF Elec.
- * @param {string} nomDeObjetBase Le nom de base pour les objets à créer (ex: "MON-OF-123").
- * @param {string} typeSysteme L'environnement cible : "DEV", "TEST", ou "PROD".
- * @param {string} [proprietesElec] Chaîne JSON ou objet contenant des propriétés additionnelles pour l'objet ELEC.
- * @returns {string} Une chaîne JSON contenant le statut et les URLs des objets créés : { success, PAC_360scID, PAC_360scID_ELEC }.
- */
 function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec) {
   let finalOutput = { success: false, message: "" };
   try {
     if (!nomDeObjetBase || !typeSysteme) { throw new Error("'nomDeObjetBase' et 'typeSysteme' sont requis."); }
     const systemTypeUpper = typeSysteme.toUpperCase();
 
-    // Appel à la NOUVELLE fonction de définition
     const objectDefinitions = getObjectDefinitionsForPrincipalAndElec_(systemTypeUpper);
     
     let parsedProperties = null;
@@ -52,17 +44,28 @@ function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec
       try {
         const createdAvatarObject = createAvatar_(token, systemTypeUpper, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
         
+        // --- [MODIFIÉ] Logique pour extraire et stocker URL et ID ---
+        const mcUrlKey = `${objDef.key}_mcUrl`;
+        const avatarIdKey = `${objDef.key}_AvatarID`;
+
         if (createdAvatarObject && createdAvatarObject.mcUrl) {
-          finalOutput[objDef.key] = createdAvatarObject.mcUrl;
+          finalOutput[mcUrlKey] = createdAvatarObject.mcUrl;
         } else if (createdAvatarObject && createdAvatarObject['@id']) {
-          finalOutput[objDef.key] = getMcUrlForAvatar_(token, systemTypeUpper, createdAvatarObject['@id']);
+          finalOutput[mcUrlKey] = getMcUrlForAvatar_(token, systemTypeUpper, createdAvatarObject['@id']);
         } else {
-           throw new Error("La réponse de création d'avatar était invalide.");
+           throw new Error("La réponse de création d'avatar était invalide pour récupérer l'URL.");
         }
+
+        if (createdAvatarObject && createdAvatarObject.id) {
+          finalOutput[avatarIdKey] = createdAvatarObject.id;
+        } else {
+          throw new Error("La réponse de création d'avatar était invalide pour récupérer l'AvatarID.");
+        }
+        // --- Fin de la modification ---
 
         if (objDef.alphaId === "v0:OF_ELEC" && parsedProperties && Object.keys(parsedProperties).length > 0) {
           Logger.log(`Détection de l'objet OF_ELEC. Tentative d'ajout des propriétés.`);
-          const avatarId = createdAvatarObject['@id'].split('/').pop();
+          const avatarId = createdAvatarObject.id; // [MODIFIÉ] Utilisation de l'ID direct
           const propertiesPayload = Object.keys(parsedProperties).map(key => ({
             name: key, value: String(parsedProperties[key]), private: false
           }));
@@ -86,7 +89,7 @@ function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec
   return JSON.stringify(finalOutput);
 }
 
-
+// ... Le reste du fichier reste identique ...
 function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, proprietesElec) {
   let finalOutput = { success: false, message: "" };
   try {
