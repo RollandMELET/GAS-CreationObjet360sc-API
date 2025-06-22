@@ -1,16 +1,15 @@
 // <!-- START OF FILE: tests.gs -->
 // FILENAME: tests.gs
-// Version: 2.7.0
-// Date: 2025-06-22 19:25
+// Version: 2.8.0
+// Date: 2024-06-22 20:41
 // Author: Rolland MELET & AI Senior Coder
-// Description: Mise à jour du test maFonctionDeTestPourCreerPrincipalEtElec_SUCCES pour valider la présence des AvatarID dans la réponse.
+// Description: Mise à jour du test pour creerMultiplesObjets360sc (maFonctionDeTestPourCreerMultiples_SUCCES) afin de valider la présence des AvatarID.
 
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
  * du projet, séparées du code de production pour une meilleure organisation.
  */
 
-// ... (Les fonctions de test pour PROD et la suite de tests restent inchangées) ...
 // =================================================================
 // =========== TESTS DÉDIÉS ET SÉCURISÉS POUR LA PRODUCTION =========
 // =================================================================
@@ -131,7 +130,6 @@ function maFonctionDeTestPourCreerPrincipalEtElec_SUCCES() {
     throw new Error("Le test a échoué car success=false. Erreur: " + resultat.error);
   }
 
-  // --- [MODIFIÉ] Validation des nouvelles clés ---
   const principalUrl = resultat.PAC_360scID_mcUrl;
   const principalId = resultat.PAC_360scID_AvatarID;
   const elecUrl = resultat.PAC_360scID_ELEC_mcUrl;
@@ -140,7 +138,6 @@ function maFonctionDeTestPourCreerPrincipalEtElec_SUCCES() {
   if (!principalUrl || !principalId || !elecUrl || !elecId) {
     throw new Error("Le test a échoué car une ou plusieurs des clés requises (mcUrl, AvatarID) sont manquantes dans la réponse.");
   }
-  // --- Fin de la modification ---
   
   Logger.log("✅ SUCCÈS: La fonction creerOFPrincipalEtElec360sc a retourné un résultat valide avec les URLs et les IDs.");
   Logger.log("Résultat complet: " + resultatString);
@@ -180,12 +177,26 @@ function maFonctionDeTestPourRecupererHistorique() {
 function maFonctionDeTestPourCreerMultiples_SUCCES() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   var testSystemType = "DEV";
-  var testNomDeObjetBase = "MonProjetMultiSucces";
+  var testNomDeObjetBase = "MonOF-MultiSucces-" + new Date().getTime();
   var resultatString = creerMultiplesObjets360sc(testNomDeObjetBase, testSystemType, "OF");
   const resultat = JSON.parse(resultatString);
+
   if (!resultat.success) {
-      throw new Error("Le test maFonctionDeTestPourCreerMultiples_SUCCES a échoué: " + resultat.error);
+      throw new Error("Le test a échoué car success=false. Erreur: " + resultat.error);
   }
+
+  // --- [MODIFIÉ] Validation des nouvelles clés ---
+  const objectDefinitions = getObjectDefinitions_(testSystemType);
+  for (const objDef of objectDefinitions) {
+    const mcUrlKey = `${objDef.key}_mcUrl`;
+    const avatarIdKey = `${objDef.key}_AvatarID`;
+    if (!resultat[mcUrlKey] || !resultat[avatarIdKey]) {
+      throw new Error(`Validation échouée : La réponse ne contient pas '${mcUrlKey}' ou '${avatarIdKey}'.`);
+    }
+  }
+  // --- Fin de la modification ---
+  
+  Logger.log("✅ SUCCÈS: creerMultiplesObjets360sc a retourné un résultat valide avec toutes les URLs et les IDs.");
   Logger.log("Résultat de creerMultiplesObjets360sc (SUCCES - chaîne JSON): " + resultatString);
 }
 

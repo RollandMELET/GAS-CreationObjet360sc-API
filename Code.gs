@@ -1,9 +1,9 @@
 // <!-- START OF FILE: Code.gs -->
 // FILENAME: Code.gs
-// Version: 1.27.0
-// Date: 2025-06-22 19:25
+// Version: 1.28.0
+// Date: 2024-06-22 20:41
 // Author: Rolland MELET & AI Senior Coder
-// Description: Enrichissement de la sortie de creerOFPrincipalEtElec360sc pour inclure les AvatarID en plus des mcUrl.
+// Description: Alignement de creerMultiplesObjets360sc pour retourner aussi les AvatarID, comme creerOFPrincipalEtElec360sc. Standardisation de l'usage de .id.
 
 /**
  * @fileoverview Fichier principal contenant les fonctions exposées et appelables par des services externes comme AppSheet.
@@ -44,7 +44,6 @@ function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec
       try {
         const createdAvatarObject = createAvatar_(token, systemTypeUpper, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
         
-        // --- [MODIFIÉ] Logique pour extraire et stocker URL et ID ---
         const mcUrlKey = `${objDef.key}_mcUrl`;
         const avatarIdKey = `${objDef.key}_AvatarID`;
 
@@ -61,11 +60,10 @@ function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec
         } else {
           throw new Error("La réponse de création d'avatar était invalide pour récupérer l'AvatarID.");
         }
-        // --- Fin de la modification ---
 
         if (objDef.alphaId === "v0:OF_ELEC" && parsedProperties && Object.keys(parsedProperties).length > 0) {
           Logger.log(`Détection de l'objet OF_ELEC. Tentative d'ajout des propriétés.`);
-          const avatarId = createdAvatarObject.id; // [MODIFIÉ] Utilisation de l'ID direct
+          const avatarId = createdAvatarObject.id;
           const propertiesPayload = Object.keys(parsedProperties).map(key => ({
             name: key, value: String(parsedProperties[key]), private: false
           }));
@@ -89,7 +87,6 @@ function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec
   return JSON.stringify(finalOutput);
 }
 
-// ... Le reste du fichier reste identique ...
 function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, proprietesElec) {
   let finalOutput = { success: false, message: "" };
   try {
@@ -126,17 +123,29 @@ function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, propr
       try {
         const createdAvatarObject = createAvatar_(token, systemTypeUpper, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
         
+        // --- [MODIFIÉ] Logique pour extraire et stocker URL et ID ---
+        const mcUrlKey = `${objDef.key}_mcUrl`;
+        const avatarIdKey = `${objDef.key}_AvatarID`;
+
         if (createdAvatarObject && createdAvatarObject.mcUrl) {
-          finalOutput[objDef.key] = createdAvatarObject.mcUrl;
+          finalOutput[mcUrlKey] = createdAvatarObject.mcUrl;
         } else if (createdAvatarObject && createdAvatarObject['@id']) {
-          finalOutput[objDef.key] = getMcUrlForAvatar_(token, systemTypeUpper, createdAvatarObject['@id']);
+          finalOutput[mcUrlKey] = getMcUrlForAvatar_(token, systemTypeUpper, createdAvatarObject['@id']);
         } else {
-           throw new Error("La réponse de création d'avatar était invalide.");
+           throw new Error("La réponse de création d'avatar était invalide pour récupérer l'URL.");
         }
+
+        if (createdAvatarObject && createdAvatarObject.id) {
+          finalOutput[avatarIdKey] = createdAvatarObject.id;
+        } else {
+          throw new Error("La réponse de création d'avatar était invalide pour récupérer l'AvatarID.");
+        }
+        // --- Fin de la modification ---
 
         if (objDef.alphaId === "v0:OF_ELEC" && parsedProperties && Object.keys(parsedProperties).length > 0) {
           Logger.log(`Détection de l'objet OF_ELEC. Tentative d'ajout des propriétés.`);
-          const avatarId = createdAvatarObject['@id'].split('/').pop();
+          // --- [STANDARDISÉ] Utilisation de .id au lieu de .split().pop() ---
+          const avatarId = createdAvatarObject.id;
           const propertiesPayload = Object.keys(parsedProperties).map(key => ({
             name: key, value: String(parsedProperties[key]), private: false
           }));
@@ -187,6 +196,7 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, typeMoule
     }
 
     finalOutput.avatarApiIdPath = createdAvatarObject['@id'];
+    finalOutput.avatarId = createdAvatarObject.id; // Ajout de l'ID simple pour plus de flexibilité
     finalOutput.objectNameCreated = objectNameForApi;
   } catch (error) {
     finalOutput.success = false;
