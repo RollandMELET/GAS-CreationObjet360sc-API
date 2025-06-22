@@ -1,8 +1,10 @@
+// <!-- START OF FILE: config.gs -->
 // FILENAME: config.gs
-// Version: 1.10.0
-// Date: 2025-06-10 11:50
-// Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Refactoring majeur pour gérer des metadataAvatarType spécifiques pour chaque sous-objet OF. OBJECT_DEFINITIONS est maintenant une fonction getObjectDefinitions_.
+// Version: 1.12.0
+// Date: 2025-06-22 11:45
+// Author: Rolland MELET & AI Senior Coder
+// Description: Intégration du nouveau type d'objet "ETIQUETTE" et correction de la casse de la clé "AUTRE" dans ALPHA_ID_MAPPING.
+
 /**
  * @fileoverview Configuration settings for the 360sc API interaction script.
  */
@@ -29,12 +31,13 @@ const COMMON_API_SETTINGS = {
   MCS_SUFFIX_PATH: "/m_cs"
 };
 
-// --- MAPPING SPÉCIFIQUE POUR LES TYPES DE MOULES ---
+// --- MAPPING SPÉCIFIQUE POUR LES SOUS-TYPES (alphaId) ---
 const ALPHA_ID_MAPPING = {
   MouleEnveloppe: "v0:OF_ENVELOPPE",
   MouleToit: "v0:OF_TOIT",
   MouleDalle: "v0:OF_DALLE",
-  Autre: "v0:MOULE_AUTRE"
+  AUTRE: "v0:MOULE_AUTRE",  // [CORRIGÉ] La clé est maintenant en majuscules.
+  ETIQUETTE: "v0:ETIQUETTE" // [AJOUTÉ] Notre convention pour le nouvel alphaId.
 };
 
 // Environment-specific configurations
@@ -45,12 +48,12 @@ const ENV_CONFIG = {
     COMPANY_ID: "/api/companies/683097e698355",
     GENERATE_MC_FINGER: "/api/fingers/53ad7037-b20f-11ea-9cf3-00505692e487",
     METADATA_AVATAR_TYPES: {
-      // Pour l'instant, on utilise le même ID pour les 3 types en DEV, comme demandé.
-      OF_PRINCIPAL: "/api/metadata_avatar_types/68309961b20ee", // Placeholder
-      OF_ELEC: "/api/metadata_avatar_types/68309961b20ee",      // Placeholder
-      OF_COMPOSANT: "/api/metadata_avatar_types/68309961b20ee", // Placeholder
+      OF_PRINCIPAL: "/api/metadata_avatar_types/68309961b20ee",
+      OF_ELEC: "/api/metadata_avatar_types/68309961b20ee",      
+      OF_COMPOSANT: "/api/metadata_avatar_types/68309961b20ee",
       MOULE: "/api/metadata_avatar_types/68309a60e3f94",
-      DEFAULT: "/api/metadata_avatar_types/683097e6c75c7"
+      DEFAULT: "/api/metadata_avatar_types/683097e6c75c7",
+      ETIQUETTE: "/api/metadata_avatar_types/6857ca820fb47" // [AJOUTÉ] Placeholder : ID de TEST utilisé pour DEV en l'absence de valeur.
     }
   },
   TEST: {
@@ -59,12 +62,12 @@ const ENV_CONFIG = {
     COMPANY_ID: "/api/companies/683fff330baf4",
     GENERATE_MC_FINGER: "/api/fingers/684469bdb1ea0",
     METADATA_AVATAR_TYPES: {
-      // IDs spécifiques pour l'environnement de TEST
       OF_PRINCIPAL: "/api/metadata_avatar_types/6840002e05ac2",
       OF_ELEC: "/api/metadata_avatar_types/6847f9a0aa7ed",
-      OF_COMPOSANT: "/api/metadata_avatar_types/6847f9be6e309", // Pour ENVELOPPE, TOIT, DALLE
+      OF_COMPOSANT: "/api/metadata_avatar_types/6847f9be6e309",
       MOULE: "/api/metadata_avatar_types/6840003b7c7b6",
-      DEFAULT: "/api/metadata_avatar_types/68309961b20ee"
+      DEFAULT: "/api/metadata_avatar_types/68309961b20ee",
+      ETIQUETTE: "/api/metadata_avatar_types/6857ca820fb47" // [AJOUTÉ] ID fourni pour TEST.
     }
   },
   PROD: {
@@ -73,12 +76,12 @@ const ENV_CONFIG = {
     COMPANY_ID: "/api/companies/684468d6e74bb",
     GENERATE_MC_FINGER: "/api/fingers/684469bdb1ea0",
     METADATA_AVATAR_TYPES: {
-      // Pour l'instant, on utilise le même ID pour les 3 types en PROD, comme demandé.
       OF_PRINCIPAL: "/api/metadata_avatar_types/684469d19d051", 
-      OF_ELEC: "/api/metadata_avatar_types/68488d1af19e8",      // Placeholder
-      OF_COMPOSANT: "/api/metadata_avatar_types/68488cd628176", // Placeholder
+      OF_ELEC: "/api/metadata_avatar_types/68488d1af19e8",
+      OF_COMPOSANT: "/api/metadata_avatar_types/68488cd628176",
       MOULE: "/api/metadata_avatar_types/684469e053ba5",
-      DEFAULT: "/api/metadata_avatar_types/684469d19d051"
+      DEFAULT: "/api/metadata_avatar_types/684469d19d051",
+      ETIQUETTE: "/api/metadata_avatar_types/6857ca94cca78" // [AJOUTÉ] ID fourni pour PROD.
     }
   }
 };
@@ -99,10 +102,7 @@ function getConfiguration_(typeSysteme) {
 }
 
 /**
- * Construit la liste des définitions d'objets OF à créer,
- * en injectant les bons IDs de métadonnées selon l'environnement.
- * @param {string} typeSysteme - L'environnement (DEV, TEST, PROD).
- * @returns {Array<Object>} Le tableau des définitions d'objets.
+ * Construit la liste des définitions d'objets OF à créer.
  */
 function getObjectDefinitions_(typeSysteme) {
   const config = getConfiguration_(typeSysteme);
@@ -116,3 +116,4 @@ function getObjectDefinitions_(typeSysteme) {
     { key: "PAC_360scID_ELEC",  alphaId: "v0:OF_ELEC",      nameSuffix: "-ELEC",  metadataId: metadataTypes.OF_ELEC }
   ];
 }
+// <!-- END OF FILE: config.gs -->
