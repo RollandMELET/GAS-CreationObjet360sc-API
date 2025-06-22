@@ -1,12 +1,91 @@
+// <!-- START OF FILE: Code.gs -->
 // FILENAME: Code.gs
-// Version: 1.25.0
-// Date: 2025-06-10 21:55
-// Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout de la nouvelle fonction getHistoriqueObjet360sc pour récupérer l'historique d'un avatar.
+// Version: 1.26.0
+// Date: 2025-06-22 18:52
+// Author: Rolland MELET & AI Senior Coder
+// Description: Ajout de la nouvelle fonction creerOFPrincipalEtElec360sc pour la création ciblée de seulement 2 objets OF.
+
 /**
  * @fileoverview Fichier principal contenant les fonctions exposées et appelables par des services externes comme AppSheet.
  * Ce fichier se concentre sur la gestion des objets (Avatars). La logique des utilisateurs est dans `users.gs`.
  */
+
+/**
+ * [NOUVEAU] Crée uniquement les objets OF Principal et OF Elec.
+ * @param {string} nomDeObjetBase Le nom de base pour les objets à créer (ex: "MON-OF-123").
+ * @param {string} typeSysteme L'environnement cible : "DEV", "TEST", ou "PROD".
+ * @param {string} [proprietesElec] Chaîne JSON ou objet contenant des propriétés additionnelles pour l'objet ELEC.
+ * @returns {string} Une chaîne JSON contenant le statut et les URLs des objets créés : { success, PAC_360scID, PAC_360scID_ELEC }.
+ */
+function creerOFPrincipalEtElec360sc(nomDeObjetBase, typeSysteme, proprietesElec) {
+  let finalOutput = { success: false, message: "" };
+  try {
+    if (!nomDeObjetBase || !typeSysteme) { throw new Error("'nomDeObjetBase' et 'typeSysteme' sont requis."); }
+    const systemTypeUpper = typeSysteme.toUpperCase();
+
+    // Appel à la NOUVELLE fonction de définition
+    const objectDefinitions = getObjectDefinitionsForPrincipalAndElec_(systemTypeUpper);
+    
+    let parsedProperties = null;
+    if (proprietesElec && typeof proprietesElec === 'string' && proprietesElec.trim().startsWith('{')) {
+      try {
+        parsedProperties = JSON.parse(proprietesElec);
+        Logger.log("Les propriétés ELEC fournies en JSON ont été parsées avec succès.");
+      } catch (jsonError) {
+        throw new Error(`Le paramètre 'proprietesElec' n'est pas un JSON valide. Erreur: ${jsonError.message}`);
+      }
+    } else if (proprietesElec && typeof proprietesElec === 'object') {
+      parsedProperties = proprietesElec;
+      Logger.log("Les propriétés ELEC ont été fournies directement comme un objet.");
+    }
+
+    Logger.log(`Début création Principal & Elec pour OF '${nomDeObjetBase}', sys: ${systemTypeUpper}`);
+    const token = getAuthToken_(systemTypeUpper);
+    
+    for (const objDef of objectDefinitions) {
+      const metadataAvatarTypeId = objDef.metadataId;
+      if (!metadataAvatarTypeId || metadataAvatarTypeId.startsWith("VOTRE_")) {
+        throw new Error(`Metadata ID non configuré pour '${objDef.key}' dans l'environnement ${systemTypeUpper}.`);
+      }
+
+      const objectNameForApi = `${objDef.alphaId}:${nomDeObjetBase}${objDef.nameSuffix}`;
+      try {
+        const createdAvatarObject = createAvatar_(token, systemTypeUpper, objectNameForApi, objDef.alphaId, metadataAvatarTypeId);
+        
+        if (createdAvatarObject && createdAvatarObject.mcUrl) {
+          finalOutput[objDef.key] = createdAvatarObject.mcUrl;
+        } else if (createdAvatarObject && createdAvatarObject['@id']) {
+          finalOutput[objDef.key] = getMcUrlForAvatar_(token, systemTypeUpper, createdAvatarObject['@id']);
+        } else {
+           throw new Error("La réponse de création d'avatar était invalide.");
+        }
+
+        if (objDef.alphaId === "v0:OF_ELEC" && parsedProperties && Object.keys(parsedProperties).length > 0) {
+          Logger.log(`Détection de l'objet OF_ELEC. Tentative d'ajout des propriétés.`);
+          const avatarId = createdAvatarObject['@id'].split('/').pop();
+          const propertiesPayload = Object.keys(parsedProperties).map(key => ({
+            name: key, value: String(parsedProperties[key]), private: false
+          }));
+          addPropertiesToAvatar_(token, systemTypeUpper, avatarId, propertiesPayload);
+          Logger.log(`Propriétés ajoutées avec succès à l'objet ${objectNameForApi}.`);
+        }
+
+      } catch (e) { 
+        throw new Error(`Échec étape '${objDef.key}': ${e.message}`); 
+      }
+    }
+    finalOutput.success = true;
+    finalOutput.message = "Objets OF Principal et Elec créés avec succès.";
+  } catch (error) {
+    finalOutput.success = false;
+    finalOutput.message = "Erreur.";
+    finalOutput.error = error.message;
+    finalOutput.details_stack = error.stack ? error.stack.substring(0, 500) : 'N/A';
+    Logger.log(`Erreur creerOFPrincipalEtElec360sc: ${finalOutput.error}`);
+  }
+  return JSON.stringify(finalOutput);
+}
+
 
 function creerMultiplesObjets360sc(nomDeObjetBase, typeSysteme, typeObjet, proprietesElec) {
   let finalOutput = { success: false, message: "" };
@@ -116,13 +195,6 @@ function creerObjetUnique360sc(nomDeObjetBase, typeSysteme, typeObjet, typeMoule
   return JSON.stringify(finalOutput);
 }
 
-/**
- * NOUVELLE FONCTION
- * Récupère l'historique d'un objet (Avatar) en utilisant son ID.
- * @param {string} typeSysteme - L'environnement (DEV, TEST, PROD).
- * @param {string} avatarId - L'ID de l'avatar. Peut être l'ID complet (/api/avatars/xxxx) ou juste le UUID (xxxx).
- * @returns {string} Une chaîne JSON contenant le statut (success) et l'historique (data).
- */
 function getHistoriqueObjet360sc(typeSysteme, avatarId) {
   let finalOutput = { success: false, message: "", data: null };
   try {
@@ -130,7 +202,6 @@ function getHistoriqueObjet360sc(typeSysteme, avatarId) {
       throw new Error("Les paramètres 'typeSysteme' et 'avatarId' sont requis.");
     }
     
-    // Rend la fonction robuste : accepte l'ID complet ou juste le UUID
     const itemId = avatarId.includes('/') ? avatarId.split('/').pop() : avatarId;
     const systemTypeUpper = typeSysteme.toUpperCase();
     Logger.log(`Demande d'historique pour l'avatar ID ${itemId}, système: ${systemTypeUpper}`);
@@ -198,3 +269,4 @@ function ajouterProprietesAvatar360sc(typeSysteme, avatarId, proprietes) {
   }
   return JSON.stringify(finalOutput);
 }
+// <!-- END OF FILE: Code.gs -->

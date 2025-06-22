@@ -1,8 +1,10 @@
+// <!-- START OF FILE: tests.gs -->
 // FILENAME: tests.gs
-// Version: 2.5.2
-// Date: 2025-06-10 22:45
-// Author: Rolland MELET (Collaboratively with AI Senior Coder)
-// Description: Ajout de la fonction de test de bout en bout pour l'environnement TEST (testEndToEnd_TEST).
+// Version: 2.6.0
+// Date: 2025-06-22 18:52
+// Author: Rolland MELET & AI Senior Coder
+// Description: Ajout d'un test dédié (maFonctionDeTestPourCreerPrincipalEtElec_SUCCES) pour la nouvelle fonctionnalité et intégration à la suite de tests complète.
+
 /**
  * @fileoverview Contient toutes les fonctions de test pour valider les fonctionnalités
  * du projet, séparées du code de production pour une meilleure organisation.
@@ -11,7 +13,7 @@
 // =================================================================
 // =========== TESTS DÉDIÉS ET SÉCURISÉS POUR LA PRODUCTION =========
 // =================================================================
-
+// ... (Les fonctions de test pour PROD restent inchangées) ...
 function maFonctionDeTestPourAuth_PROD() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   var testSystemType = "PROD";
@@ -68,12 +70,6 @@ function testEndToEnd_PROD() {
 // =================================================================
 // =============== SUITE DE TESTS POUR DEV & TEST ==================
 // =================================================================
-
-/**
- * NOUVELLE FONCTION
- * Teste la création d'une structure OF complète sur l'environnement de TEST.
- * ATTENTION : Cette fonction crée des objets réels sur l'environnement de TEST.
- */
 function testEndToEnd_TEST() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   Logger.log("⚠️ ATTENTION : Création de 5 objets de test sur l'environnement de TEST.");
@@ -98,6 +94,7 @@ function testSuiteComplete() {
     Logger.log("Lancement de la SUITE DE TESTS COMPLÈTE (DEV & TEST)");
     Logger.log("======================================================");
     const testsToRun = [
+      { name: "[NOUVEAU] Scénario 0: Création OF Principal & Elec (sur DEV)", func: maFonctionDeTestPourCreerPrincipalEtElec_SUCCES },
       { name: "Scénario 1: Création d'une structure OF complète (sur DEV)", func: maFonctionDeTestPourCreerMultiples_SUCCES },
       { name: "Scénario 2: Création d'une structure OF avec propriétés ELEC (sur DEV)", func: maFonctionDeTestPourCreerMultiplesAvecProprietes },
       { name: "Scénario 3: Création d'un Avatar unique (Moule) (sur DEV)", func: maFonctionDeTestPourCreerObjetUnique },
@@ -106,12 +103,12 @@ function testSuiteComplete() {
       { name: "Scénario 6: Activation d'un utilisateur par profil (sur TEST)", func: maFonctionDeTestPourActiverUtilisateurParProfil }
     ];
     testsToRun.forEach((test, index) => {
-        Logger.log(`\n--- DÉBUT TEST ${index + 1}/${testsToRun.length}: ${test.name} ---\n`);
+        Logger.log(`\n--- DÉBUT TEST ${index}/${testsToRun.length-1}: ${test.name} ---\n`);
         try { 
           test.func(); 
-          Logger.log(`\n--- SUCCÈS TEST ${index + 1}: ${test.name} ---\n`);
+          Logger.log(`\n--- SUCCÈS TEST ${index}: ${test.name} ---\n`);
         } catch (e) { 
-          Logger.log(`\n--- ERREUR CRITIQUE TEST ${index + 1}: ${test.name} ---`);
+          Logger.log(`\n--- ERREUR CRITIQUE TEST ${index}: ${test.name} ---`);
           Logger.log("ERREUR: " + e.toString());
           Logger.log("STACK: " + (e.stack || 'N/A'));
         }
@@ -121,13 +118,36 @@ function testSuiteComplete() {
     Logger.log("======================================================");
 }
 
+/**
+ * [NOUVEAU] Teste la nouvelle fonction creerOFPrincipalEtElec360sc.
+ */
+function maFonctionDeTestPourCreerPrincipalEtElec_SUCCES() {
+  Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
+  const testSystemType = "DEV";
+  const testNomDeObjetBase = "OF-PrincipalElec-" + new Date().getTime();
+  const proprietesPourElec = { "testProp": "valeurTest123" };
+  
+  const resultatString = creerOFPrincipalEtElec360sc(testNomDeObjetBase, testSystemType, JSON.stringify(proprietesPourElec));
+  const resultat = JSON.parse(resultatString);
+  
+  if (!resultat.success) {
+    throw new Error("Le test a échoué car success=false. Erreur: " + resultat.error);
+  }
+  if (!resultat.PAC_360scID || !resultat.PAC_360scID_ELEC) {
+    throw new Error("Le test a échoué car les clés 'PAC_360scID' ou 'PAC_360scID_ELEC' sont manquantes dans la réponse.");
+  }
+  
+  Logger.log("✅ SUCCÈS: La fonction creerOFPrincipalEtElec360sc a retourné un résultat valide.");
+  Logger.log("Résultat complet: " + resultatString);
+}
+
 
 function maFonctionDeTestPourRecupererHistorique() {
   Logger.log("Lancement de la fonction de test : " + arguments.callee.name);
   const testSystemType = "TEST"; 
 
   const nomObjetTest = "TestHistoV1-" + new Date().getTime();
-  const creationResultString = creerObjetUnique360sc(nomObjetTest, testSystemType, "MOULE", "Autre");
+  const creationResultString = creerObjetUnique360sc(nomObjetTest, testSystemType, "MOULE", "AUTRE");
   const creationResult = JSON.parse(creationResultString);
 
   if (!creationResult.success || !creationResult.avatarApiIdPath) {
@@ -261,3 +281,4 @@ function maFonctionDeTestPourActiverUtilisateurParProfil() {
   }
   Logger.log(`Résultat du wrapper pour profil inexistant (devrait être une erreur): ${resultatWrapper3}`);
 }
+// <!-- END OF FILE: tests.gs -->

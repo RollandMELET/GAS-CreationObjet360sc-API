@@ -1,9 +1,9 @@
 // <!-- START OF FILE: config.gs -->
 // FILENAME: config.gs
-// Version: 1.12.0
-// Date: 2025-06-22 11:45
+// Version: 1.13.0
+// Date: 2025-06-22 18:52
 // Author: Rolland MELET & AI Senior Coder
-// Description: Intégration du nouveau type d'objet "ETIQUETTE" et correction de la casse de la clé "AUTRE" dans ALPHA_ID_MAPPING.
+// Description: Ajout d'une nouvelle fonction de définition 'getObjectDefinitionsForPrincipalAndElec_' pour la création ciblée des objets OF Principal et Elec.
 
 /**
  * @fileoverview Configuration settings for the 360sc API interaction script.
@@ -36,8 +36,8 @@ const ALPHA_ID_MAPPING = {
   MouleEnveloppe: "v0:OF_ENVELOPPE",
   MouleToit: "v0:OF_TOIT",
   MouleDalle: "v0:OF_DALLE",
-  AUTRE: "v0:MOULE_AUTRE",  // [CORRIGÉ] La clé est maintenant en majuscules.
-  ETIQUETTE: "v0:ETIQUETTE" // [AJOUTÉ] Notre convention pour le nouvel alphaId.
+  AUTRE: "v0:MOULE_AUTRE",
+  ETIQUETTE: "v0:ETIQUETTE"
 };
 
 // Environment-specific configurations
@@ -53,7 +53,7 @@ const ENV_CONFIG = {
       OF_COMPOSANT: "/api/metadata_avatar_types/68309961b20ee",
       MOULE: "/api/metadata_avatar_types/68309a60e3f94",
       DEFAULT: "/api/metadata_avatar_types/683097e6c75c7",
-      ETIQUETTE: "/api/metadata_avatar_types/6857ca820fb47" // [AJOUTÉ] Placeholder : ID de TEST utilisé pour DEV en l'absence de valeur.
+      ETIQUETTE: "/api/metadata_avatar_types/6857ca820fb47"
     }
   },
   TEST: {
@@ -67,7 +67,7 @@ const ENV_CONFIG = {
       OF_COMPOSANT: "/api/metadata_avatar_types/6847f9be6e309",
       MOULE: "/api/metadata_avatar_types/6840003b7c7b6",
       DEFAULT: "/api/metadata_avatar_types/68309961b20ee",
-      ETIQUETTE: "/api/metadata_avatar_types/6857ca820fb47" // [AJOUTÉ] ID fourni pour TEST.
+      ETIQUETTE: "/api/metadata_avatar_types/6857ca820fb47"
     }
   },
   PROD: {
@@ -81,7 +81,7 @@ const ENV_CONFIG = {
       OF_COMPOSANT: "/api/metadata_avatar_types/68488cd628176",
       MOULE: "/api/metadata_avatar_types/684469e053ba5",
       DEFAULT: "/api/metadata_avatar_types/684469d19d051",
-      ETIQUETTE: "/api/metadata_avatar_types/6857ca94cca78" // [AJOUTÉ] ID fourni pour PROD.
+      ETIQUETTE: "/api/metadata_avatar_types/6857ca94cca78"
     }
   }
 };
@@ -102,7 +102,7 @@ function getConfiguration_(typeSysteme) {
 }
 
 /**
- * Construit la liste des définitions d'objets OF à créer.
+ * Construit la liste des définitions d'objets OF à créer (STRUCTURE COMPLÈTE).
  */
 function getObjectDefinitions_(typeSysteme) {
   const config = getConfiguration_(typeSysteme);
@@ -114,6 +114,19 @@ function getObjectDefinitions_(typeSysteme) {
     { key: "PAC_360scID_DALLE", alphaId: "v0:OF_DALLE",     nameSuffix: "-DALLE", metadataId: metadataTypes.OF_COMPOSANT },
     { key: "PAC_360scID_TOIT",  alphaId: "v0:OF_TOIT",      nameSuffix: "-TOIT",  metadataId: metadataTypes.OF_COMPOSANT },
     { key: "PAC_360scID_ELEC",  alphaId: "v0:OF_ELEC",      nameSuffix: "-ELEC",  metadataId: metadataTypes.OF_ELEC }
+  ];
+}
+
+/**
+ * [NOUVEAU] Construit la liste des définitions d'objets OF à créer (PRINCIPAL ET ELEC SEULEMENT).
+ */
+function getObjectDefinitionsForPrincipalAndElec_(typeSysteme) {
+  const config = getConfiguration_(typeSysteme);
+  const metadataTypes = config.METADATA_AVATAR_TYPES;
+
+  return [
+    { key: "PAC_360scID",      alphaId: "v0:OF_PRINCIPAL", nameSuffix: "",        metadataId: metadataTypes.OF_PRINCIPAL },
+    { key: "PAC_360scID_ELEC", alphaId: "v0:OF_ELEC",      nameSuffix: "-ELEC",   metadataId: metadataTypes.OF_ELEC }
   ];
 }
 // <!-- END OF FILE: config.gs -->
